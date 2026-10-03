@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+/* Design tokens : génèrent automatiquement les classes Tailwind (bg-brand, text-accent, border-brand/10...) */
+@theme {
+  --color-brand: oklch(0.25 0.02 260);
+  --color-accent: oklch(0.7 0.15 60);
+}
