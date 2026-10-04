@@ -1,6 +1,9 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import { Image } from 'astro:assets';
 import CarouselCard from '@/components/sections/CarouselCard.astro';
+import rockstarImg from '@/assets/images/rockstar-img.avif';
+import singleImg from '@/assets/images/single-img.avif';
 
 // Une entrée = l'image d'une card. Importe tes images en haut du fichier, puis remplace les null :
 // import aviator from '@/assets/images/aviator.avif';  →  { image: aviator, alt: 'Lunettes Aviator' }
@@ -17,6 +20,17 @@ const cards = [
 // la seconde est exactement à sa place, et l'animation reprend à zéro sans saut visible.
 // La copie est `inert` : ignorée par les lecteurs d'écran et la navigation au clavier.
 const series = [false, true];
+
+// Cadres de la section Bestsellers (vides pour l'instant) : une entrée = un cadre, dans l'ordre de la grille.
+// Écris toujours la classe complète (bg-…) : Tailwind ne détecte pas une classe construite par morceaux.
+const bestsellers = [
+	{ color: 'bg-yellow' },
+	{ color: 'bg-red' },
+	{ color: 'bg-yellow' },
+	{ color: 'bg-blue' },
+	{ color: 'bg-yellow' },
+	{ color: 'bg-blue' },
+];
 ---
 
 <BaseLayout title="Accueil">
@@ -31,16 +45,56 @@ const series = [false, true];
 			))}
 		</div>
 	</section>
-	<section class="w-full overflow-hidden mt-[6.25vh]">
-		<div class="pr-[3.44vw]">
-			<div class="h-[44.59vh] w-full bg-yellow
-            [clip-path:polygon(0_0,80%_0,100%_100%,0_100%)]">
+	<section class="w-full overflow-hidden mt-[6.25vh]" data-reveal-section>
+		<div class="relative pr-[3.44vw]" data-reveal="left">
+			<div class="w-full bg-yellow
+            [clip-path:polygon(0_0,90%_0,100%_100%,0_100%)]">
+				<Image src={rockstarImg} alt="Collection Rockstar" format="avif" class="block w-full h-auto" />
 			</div>
+			<!-- Hors de la forme pour ne pas être coupé par le clip-path ; right = padding du conteneur + marge -->
+			<span class="absolute bottom-[4vh] right-[calc(3.44vw+4vh)] z-10 px-[1vh] font-rubik-mono text-blue text-3xl">
+				Rockstar
+			</span>
 		</div>
-		<div class="pl-[3.44vw] mt-[8.17vh]">
-			<div class="h-[44.59vh] w-full bg-yellow
-            [clip-path:polygon(20%_0,100%_0,100%_100%,0_100%)]">
+		<div class="relative pl-[3.44vw] mt-[8.17vh]" data-reveal="right">
+			<div class="w-full bg-brown
+            [clip-path:polygon(10%_0,100%_0,100%_100%,0_100%)]">
+				<Image src={singleImg} alt="Collection Single" format="avif" class="block w-full h-auto" />
 			</div>
+			<!-- Hors de la forme pour ne pas être coupé par le clip-path ; left = padding du conteneur + marge -->
+			<span class="absolute bottom-[4vh] left-[calc(3.44vw+4vh)] z-10 px-[1vh] font-rubik-mono text-yellow text-3xl">
+				Single
+			</span>
+		</div>
+	</section>
+	<section class="mx-0 mt-[7.21vh] mb-0 pt-[3.61vh] bg-brown items-center text-center" data-reveal-section>
+		<span class="block px-[1vh] font-rubik-mono text-yellow text-4xl leading-none">Bestsellers</span>
+		<!-- 2 lignes de 3 cadres, 24px d'espace sur l'écran de référence (24/1280 en largeur, 24/832 en hauteur) -->
+		<div class="grid grid-cols-3 gap-x-[1.875vw] gap-y-[2.88vh] px-[2.81vw] pt-[13.22vh] pb-[6.49vh]">
+			{bestsellers.map((cadre) => (
+				<div class:list={['aspect-square', cadre.color]}></div>
+			))}
 		</div>
 	</section>
 </BaseLayout>
+
+<script>
+	// Quand une section [data-reveal-section] entre dans l'écran, tous ses éléments [data-reveal]
+	// reçoivent .is-visible, l'un après l'autre (décalage de 0.4s entre chaque, une seule fois).
+	const observer = new IntersectionObserver(
+		(entries) => {
+			for (const entry of entries) {
+				if (entry.isIntersecting) {
+					entry.target.querySelectorAll('[data-reveal]').forEach((el, i) => {
+						el.style.setProperty('--reveal-delay', `${i * 0.4}s`);
+						el.classList.add('is-visible');
+					});
+					observer.unobserve(entry.target);
+				}
+			}
+		},
+		{ threshold: 0.2 },
+	);
+
+	document.querySelectorAll('[data-reveal-section]').forEach((section) => observer.observe(section));
+</script>

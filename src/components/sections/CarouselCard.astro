@@ -14,7 +14,9 @@ interface Props {
 const { image, alt = '', class: className } = Astro.props;
 
 // Frise : la rangée d'étoiles est rendue deux fois pour boucler sans saut (même principe que le carousel).
-const stars = Array.from({ length: 12 });
+// Une rangée doit être plus large que la card (≈ 53.4vh), sinon un vide apparaît en fin de boucle :
+// 18 × (2.21vh d'étoile + 1.5vh d'espace) ≈ 67vh. Si tu réduis la taille ou l'espace des étoiles, augmente ce nombre.
+const stars = Array.from({ length: 18 });
 const series = [false, true];
 ---
 
@@ -22,7 +24,7 @@ const series = [false, true];
 	<!-- Frise du haut + titre posé par-dessus -->
 	<div class="relative">
 		<div class="overflow-hidden py-[1vh]" aria-hidden="true">
-			<div class="flex w-max animate-marquee [animation-duration:10s] motion-reduce:animate-none">
+			<div class="flex w-max animate-marquee [animation-duration:15s] motion-reduce:animate-none">
 				{series.map(() => (
 					<div class="flex gap-[1.5vh] pr-[1.5vh]">
 						{stars.map(() => <Star class="h-[2.5vh] w-auto text-red" />)}
@@ -40,7 +42,7 @@ const series = [false, true];
 	</div>
 
 	<div class="overflow-hidden py-[1vh]" aria-hidden="true">
-		<div class="flex w-max animate-marquee [animation-duration:10s] motion-reduce:animate-none">
+		<div class="flex w-max animate-marquee [animation-duration:15s] motion-reduce:animate-none">
 			{series.map(() => (
 				<div class="flex gap-[1.5vh] pr-[1.5vh]">
 					{stars.map(() => <Star class="h-[2.5vh] w-auto text-red" />)}

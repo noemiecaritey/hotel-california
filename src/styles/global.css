@@ -28,3 +28,18 @@
     }
   }
 }
+
+/* Entrée depuis le bord de la page : [data-reveal="left|right"] sur le conteneur, l'enfant glisse.
+   Le conteneur ne bouge pas, sinon il serait hors de l'écran et ne serait jamais détecté. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal] > * {
+    transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--reveal-delay, 0s);
+  }
+  [data-reveal="left"]:not(.is-visible) > * {
+    transform: translateX(-100vw);
+  }
+  [data-reveal="right"]:not(.is-visible) > * {
+    transform: translateX(100vw);
+  }
+}
