@@ -1,0 +1,49 @@
+---
+// Bouton radio : un clic lance la musique, un second clic la coupe.
+// Les navigateurs bloquent le son lancé sans action de l'utilisateur, d'où le démarrage au clic.
+import RadioOn from '@/assets/images/radio-on.svg';
+import RadioOff from '@/assets/images/radio-off.svg';
+
+interface Props {
+	/** Fichier audio placé dans public/ (ex. /audio/radio.mp3) */
+	src?: string;
+	class?: string;
+}
+
+const { src = '/audio/radio.mp3', class: className } = Astro.props;
+---
+
+<radio-toggle class:list={['inline-block', className]}>
+	<button type="button" aria-pressed="false" aria-label="Lancer la musique" class="block h-full cursor-pointer">
+		<RadioOff class="h-full w-auto" data-radio-off />
+		<RadioOn class="hidden h-full w-auto" data-radio-on />
+	</button>
+	<audio src={src} loop preload="none"></audio>
+</radio-toggle>
+
+<script>
+	class RadioToggle extends HTMLElement {
+		connectedCallback() {
+			const button = this.querySelector('button')!;
+			const audio = this.querySelector('audio')!;
+			const on = this.querySelector('[data-radio-on]')!;
+			const off = this.querySelector('[data-radio-off]')!;
+
+			const render = (playing: boolean) => {
+				button.setAttribute('aria-pressed', String(playing));
+				button.setAttribute('aria-label', playing ? 'Couper la musique' : 'Lancer la musique');
+				on.classList.toggle('hidden', !playing);
+				off.classList.toggle('hidden', playing);
+			};
+
+			button.addEventListener('click', () => {
+				if (audio.paused) audio.play().catch(() => render(false));
+				else audio.pause();
+			});
+			audio.addEventListener('play', () => render(true));
+			audio.addEventListener('pause', () => render(false));
+		}
+	}
+
+	customElements.define('radio-toggle', RadioToggle);
+</script>

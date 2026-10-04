@@ -6,8 +6,14 @@ import Star from '@/assets/images/star.svg';
 ---
 
 <header class="w-full relative m-0">
-	<div class="m-0 w-full h-[25vh] md:h-[35vh] bg-blue items-center flex flex-col">
-		<Image src={teteHeader} alt="" format="avif" class="h-full w-auto max-w-full object-contain" />
+	<!-- Cadrage de la maquette : image 1.375× plus haute que le bandeau, remontée de 10.9% et décalée de 6.25% vers la droite -->
+	<div class="relative m-0 w-full h-[25vh] md:h-[35vh] bg-blue overflow-hidden">
+		<Image
+			src={teteHeader}
+			alt=""
+			format="avif"
+			class="absolute inset-x-0 top-0 mx-auto h-[137.5%] w-auto max-w-none translate-x-[6.25%] translate-y-[-10.9%]"
+		/>
 	</div>
 	<div class="w-full h-[2.28vh] bg-yellow mt-4">
 	</div>
