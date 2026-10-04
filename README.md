@@ -30,6 +30,7 @@ src/
 ├── components/
 │   ├── layout/          Header, Footer — présents sur toutes les pages
 │   ├── product/         Composants métier : carte produit, galerie, filtres…
+│   ├── sections/        Grands blocs de page (carousel d'accueil…), assemblés dans pages/
 │   └── ui/              Briques génériques réutilisables : Button, Badge, Input…
 ├── content/products/    Le catalogue : un fichier .md ou .json par modèle
 ├── content.config.ts    Schéma (typé et validé) d'un produit

@@ -1,9 +1,46 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import CarouselCard from '@/components/sections/CarouselCard.astro';
+
+// Une entrée = l'image d'une card. Importe tes images en haut du fichier, puis remplace les null :
+// import aviator from '@/assets/images/aviator.avif';  →  { image: aviator, alt: 'Lunettes Aviator' }
+const cards = [
+	{ image: null, alt: '' },
+	{ image: null, alt: '' },
+	{ image: null, alt: '' },
+	{ image: null, alt: '' },
+	{ image: null, alt: '' },
+	{ image: null, alt: '' },
+];
+
+// Les cards sont rendues deux fois : quand la première série a fini de défiler (translateX(-50%)),
+// la seconde est exactement à sa place, et l'animation reprend à zéro sans saut visible.
+// La copie est `inert` : ignorée par les lecteurs d'écran et la navigation au clavier.
+const series = [false, true];
 ---
 
 <BaseLayout title="Accueil">
-	<section class="mx-auto max-w-7xl px-4 py-16">
-		<h1 class="text-4xl font-bold">Accueil</h1>
+	<section class="w-full overflow-hidden mt-13">
+		<div class="flex w-max animate-marquee motion-reduce:animate-none">
+			{series.map((isCopy) => (
+				<div class="flex gap-[2.88vh] pr-[2.88vh]" inert={isCopy}>
+					{cards.map((card) => (
+						<CarouselCard class="bg-blue" image={card.image} alt={card.alt} />
+					))}
+				</div>
+			))}
+		</div>
+	</section>
+	<section class="w-full overflow-hidden mt-[6.25vh]">
+		<div class="pr-[3.44vw]">
+			<div class="h-[44.59vh] w-full bg-yellow
+            [clip-path:polygon(0_0,80%_0,100%_100%,0_100%)]">
+			</div>
+		</div>
+		<div class="pl-[3.44vw] mt-[8.17vh]">
+			<div class="h-[44.59vh] w-full bg-yellow
+            [clip-path:polygon(20%_0,100%_0,100%_100%,0_100%)]">
+			</div>
+		</div>
 	</section>
 </BaseLayout>

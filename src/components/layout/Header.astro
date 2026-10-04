@@ -1,5 +1,34 @@
-<header class="border-b border-brand/10">
-	<nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-		<a href="/" class="text-lg font-semibold">Logo</a>
+---
+import { Image } from 'astro:assets';
+import teteHeader from '@/assets/images/tete-header.avif';
+import Logo from '@/assets/images/logo-header.svg';
+import Star from '@/assets/images/star.svg';
+---
+
+<header class="w-full relative m-0">
+	<div class="m-0 w-full h-[25vh] md:h-[35vh] bg-blue items-center flex flex-col">
+		<Image src={teteHeader} alt="" format="avif" class="h-full w-auto max-w-full object-contain" />
+	</div>
+	<div class="w-full h-[2.28vh] bg-yellow mt-4">
+	</div>
+	<div class="w-full h-[2.28vh] bg-yellow mt-2">
+	</div>
+	<div class="w-full h-[4.09vh] bg-red mt-2">
+	</div>
+	<Logo class="absolute z-10 h-[17.67vh] w-auto inset-x-0 mx-auto top-[30vh]" />
+	<nav class="mx-0 flex bg-brown mt-2 h-[8.53vh] items-center justify-between px-28 align-center">
+		<a href="/" class="text-white hover:text-yellow font-rubik-mono transition duration-300 ease-out motion-safe:hover:-translate-y-0.5">Rockstar</a>
+		<div class="flex space-x-2">
+			<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
+			<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
+			<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
+		</div>
+		<a href="/" class="text-white hover:text-yellow font-rubik-mono transition duration-300 ease-out motion-safe:hover:-translate-y-0.5">Single</a>
+		<div class="flex space-x-2">
+			<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
+			<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
+			<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
+		</div>
+		<a href="/" class="text-white hover:text-yellow font-rubik-mono transition duration-300 ease-out motion-safe:hover:-translate-y-0.5">Bestseller</a>
 	</nav>
 </header>

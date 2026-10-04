@@ -19,9 +19,15 @@ const { title, description = '' } = Astro.props;
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Rubik+Mono+One&display=swap"
+			rel="stylesheet"
+		/>
 		<title>{title}</title>
 	</head>
-	<body class="flex min-h-screen flex-col font-sans text-brand antialiased">
+	<body class="flex min-h-screen flex-col font-sans text-brown antialiased">
 		<Header />
 		<main class="flex-1">
 			<slot />

@@ -1,0 +1,51 @@
+---
+// Card du carousel : taille fixe 444×367 (écran de référence 1280×832).
+// Commun à toutes les cards : le titre et les frises d'étoiles. Seule l'image change.
+import type { ImageMetadata } from 'astro';
+import { Image } from 'astro:assets';
+import Star from '@/assets/images/star.svg';
+
+interface Props {
+	image?: ImageMetadata | null;
+	alt?: string;
+	class?: string;
+}
+
+const { image, alt = '', class: className } = Astro.props;
+
+// Frise : la rangée d'étoiles est rendue deux fois pour boucler sans saut (même principe que le carousel).
+const stars = Array.from({ length: 12 });
+const series = [false, true];
+---
+
+<div class:list={['h-[44.11vh] aspect-444/367 shrink-0 flex flex-col overflow-hidden', className]}>
+	<!-- Frise du haut + titre posé par-dessus -->
+	<div class="relative">
+		<div class="overflow-hidden py-[1vh]" aria-hidden="true">
+			<div class="flex w-max animate-marquee [animation-duration:10s] motion-reduce:animate-none">
+				{series.map(() => (
+					<div class="flex gap-[1.5vh] pr-[1.5vh]">
+						{stars.map(() => <Star class="h-[2.5vh] w-auto text-red" />)}
+					</div>
+				))}
+			</div>
+		</div>
+		<div class="absolute inset-0 z-10 flex items-center justify-center">
+			<span class="bg-blue px-[1vh] font-rubik-mono text-red">Nouveautés</span>
+		</div>
+	</div>
+
+	<div class="flex-1 min-h-0 flex items-center justify-center">
+		{image && <Image src={image} alt={alt} class="h-full w-auto max-w-full object-contain" />}
+	</div>
+
+	<div class="overflow-hidden py-[1vh]" aria-hidden="true">
+		<div class="flex w-max animate-marquee [animation-duration:10s] motion-reduce:animate-none">
+			{series.map(() => (
+				<div class="flex gap-[1.5vh] pr-[1.5vh]">
+					{stars.map(() => <Star class="h-[2.5vh] w-auto text-red" />)}
+				</div>
+			))}
+		</div>
+	</div>
+</div>

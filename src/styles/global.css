@@ -1,7 +1,30 @@
 @import "tailwindcss";
 
-/* Design tokens : génèrent automatiquement les classes Tailwind (bg-brand, text-accent, border-brand/10...) */
+@font-face {
+  font-family: "Satoshi";
+  src: url("../assets/font/Satoshi-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Design tokens : génèrent automatiquement les classes Tailwind (bg-blue, text-red, border-brown/10...) */
 @theme {
-  --color-brand: oklch(0.25 0.02 260);
-  --color-accent: oklch(0.7 0.15 60);
+  --color-brown: oklch(24.58% 0.0503 25.2); /* #351614 brun foncé */
+  --color-red: oklch(60.78% 0.2183 32.12); /* #E83515 rouge-orangé */
+  --color-yellow: oklch(92.46% 0.1922 104.11); /* #FCEB18 jaune */
+  --color-blue: oklch(69.24% 0.076 222.08); /* #64A7BE bleu */
+
+  /* Polices : génèrent les classes font-satoshi, font-dm-sans, font-rubik-mono */
+  --font-satoshi: "Satoshi", ui-sans-serif, system-ui, sans-serif;
+  --font-rubik-mono: "Rubik Mono One", ui-monospace, monospace;
+
+  /* Animations : génèrent la classe animate-marquee */
+  --animate-marquee: marquee 40s linear infinite;
+
+  @keyframes marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
 }
