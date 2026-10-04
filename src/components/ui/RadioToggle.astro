@@ -15,12 +15,37 @@ interface Props {
 }
 
 const { src = '/audio/radio.mp3', autoplay = false, class: className } = Astro.props;
+
+// Notes qui sortent de la radio pendant la lecture : décalage horizontal, rotation, retard, couleur.
+const notes = [
+	{ dx: '-140%', rot: '-25deg', delay: '0s', color: 'text-yellow' },
+	{ dx: '-60%', rot: '15deg', delay: '0.6s', color: 'text-red' },
+	{ dx: '-180%', rot: '-10deg', delay: '1.2s', color: 'text-blue' },
+	{ dx: '-90%', rot: '30deg', delay: '1.8s', color: 'text-yellow' },
+];
 ---
 
 <radio-toggle class:list={['inline-block', className]} data-autoplay={autoplay ? '' : undefined}>
-	<button type="button" aria-pressed="false" aria-label="Lancer la musique" class="block h-full cursor-pointer">
+	<button type="button" aria-pressed="false" aria-label="Lancer la musique" class="relative block h-full cursor-pointer">
 		<RadioOff class="h-full w-auto" data-radio-off />
 		<RadioOn class="hidden h-full w-auto" data-radio-on />
+		<span class="pointer-events-none absolute left-[15%] top-[20%]" aria-hidden="true">
+			{notes.map((note) => (
+				<svg
+					class:list={['note absolute h-[3vh] w-auto', note.color]}
+					style={`--dx: ${note.dx}; --rot: ${note.rot}; animation-delay: ${note.delay};`}
+					viewBox="0 0 24 24"
+				>
+					<path
+						d="M9 3v10.55A4 4 0 1 0 11 17V7h4V3H9z"
+						fill="currentColor"
+						stroke="#351614"
+						stroke-width="1.5"
+						stroke-linejoin="round"
+					/>
+				</svg>
+			))}
+		</span>
 	</button>
 	<audio src={src} loop preload={autoplay ? 'auto' : 'none'}></audio>
 </radio-toggle>
@@ -34,6 +59,7 @@ const { src = '/audio/radio.mp3', autoplay = false, class: className } = Astro.p
 			const off = this.querySelector('[data-radio-off]')!;
 
 			const render = (playing: boolean) => {
+				this.toggleAttribute('data-playing', playing);
 				button.setAttribute('aria-pressed', String(playing));
 				button.setAttribute('aria-label', playing ? 'Couper la musique' : 'Lancer la musique');
 				on.classList.toggle('hidden', !playing);
@@ -70,3 +96,33 @@ const { src = '/audio/radio.mp3', autoplay = false, class: className } = Astro.p
 
 	customElements.define('radio-toggle', RadioToggle);
 </script>
+
+<style>
+	/* Notes invisibles à l'arrêt ; pendant la lecture elles montent en ondulant puis disparaissent, en boucle. */
+	.note {
+		opacity: 0;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		radio-toggle[data-playing] .note {
+			animation: note-float 2.4s ease-out infinite;
+		}
+	}
+
+	@keyframes note-float {
+		0% {
+			opacity: 0;
+			transform: translate(0, 0) rotate(0deg) scale(0.5);
+		}
+		15% {
+			opacity: 1;
+		}
+		50% {
+			transform: translate(calc(var(--dx) * 0.5), -150%) rotate(calc(var(--rot) * -1)) scale(0.9);
+		}
+		100% {
+			opacity: 0;
+			transform: translate(var(--dx), -300%) rotate(var(--rot)) scale(1);
+		}
+	}
+</style>
