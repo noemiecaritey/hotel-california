@@ -1,5 +1,6 @@
 ---
 import '@/styles/global.css';
+import { ClientRouter } from 'astro:transitions';
 import Header from '@/components/layout/Header.astro';
 import Footer from '@/components/layout/Footer.astro';
 import RadioToggle from '@/components/ui/RadioToggle.astro';
@@ -7,12 +8,21 @@ import RadioToggle from '@/components/ui/RadioToggle.astro';
 interface Props {
 	title: string;
 	description?: string;
+	/** Hero et menu, voir Header (l'image du hero produit se passe dans le slot "hero") */
+	hero?: 'rockstar' | 'popstar' | 'produit' | 'panier';
+	nav?: { label: string; href: string; actif?: boolean }[];
 }
 
-const { title, description = '' } = Astro.props;
+const {
+	title,
+	description = 'Hotel California, lunettes de soleil aux couleurs du rock : collections Rockstar et Single.',
+	hero,
+	nav,
+} = Astro.props;
+// scroll-pt sur <html> : un lien vers une ancre (#bestsellers) ne s'arrête pas sous le menu collé en haut de l'écran.
 ---
 
-<html lang="fr">
+<html lang="fr" class="scroll-pt-[8.53vh]">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -27,14 +37,19 @@ const { title, description = '' } = Astro.props;
 			rel="stylesheet"
 		/>
 		<title>{title}</title>
+		<!-- Navigation sans rechargement : la radio (transition:persist) continue de jouer d'une page à l'autre -->
+		<ClientRouter />
 	</head>
 	<body class="flex min-h-screen flex-col font-sans text-brown antialiased">
-		<Header />
+		<Header hero={hero} nav={nav}><slot name="hero" slot="hero" /></Header>
 		<main class="flex-1">
 			<slot />
 		</main>
 		<Footer />
 		<!-- Radio fixe en bas à droite, visible pendant tout le défilement (55px de haut, 24px des bords sur l'écran de référence) -->
-		<RadioToggle src="/audio/hotel-california.mp3" autoplay class="fixed bottom-[2.88vh] right-[1.875vw] z-50 h-[6.61vh]" />
+		<!-- transition:persist sur un élément (sur le composant, il n'est pas transmis) : ce même lecteur reste d'une page à l'autre -->
+		<div transition:persist="radio">
+			<RadioToggle src="/audio/hotel-california.mp3" autoplay class="fixed bottom-[2.88vh] right-[1.875vw] z-50 h-[6.61vh]" />
+		</div>
 	</body>
 </html>

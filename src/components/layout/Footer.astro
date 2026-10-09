@@ -1,7 +1,29 @@
-<!-- Bandes rouges séparées par le fond brun (19px d'espace sur l'écran de référence 1280×832) -->
+---
+// Pied de page : bandes rouges séparées par le fond brun (19px d'espace sur l'écran de référence 1280×832).
+const liensPrincipaux = [
+	// dans la 2e et la 3e bande ; décalage du texte par rapport au centre, mesuré sur la maquette
+	{ label: 'Contact', href: '/contact', bande: 'h-[5.77vh]', decalage: '-left-[0.47vw] top-[0.84vh]' },
+	{ label: 'À propos', href: '/a-propos', bande: 'h-[7.21vh]', decalage: 'left-[0.23vw] top-[0.12vh]' },
+];
+const liensLegaux = [
+	{ label: 'Conditions générales', href: '/conditions-generales' },
+	{ label: 'Mentions légales', href: '/mentions-legales' },
+	{ label: 'Politique cookies', href: '/politique-cookies' },
+];
+const lien = 'font-rubik-mono text-[1.5625vw] leading-none transition duration-300 ease-out motion-safe:hover:-translate-y-0.5';
+---
+
 <footer class="flex flex-col gap-[2.28vh] bg-brown">
 	<div class="h-[3.37vh] bg-red"></div>
-	<div class="h-[5.77vh] bg-red"></div>
-	<div class="h-[7.21vh] bg-red"></div>
-	<div class="h-[18.63vh] bg-red"></div>
+	{liensPrincipaux.map((l) => (
+		<div class:list={['flex items-center justify-center bg-red', l.bande]}>
+			<a href={l.href} class:list={[lien, 'relative text-yellow hover:text-brown', l.decalage]}>{l.label}</a>
+		</div>
+	))}
+	<!-- Liens légaux : en bas de la dernière bande, à 71px du bord gauche et espacés de 88px (maquette) -->
+	<nav class="flex h-[18.63vh] items-end gap-[6.6vw] bg-red pb-[3.49vh] pl-[5.39vw]" aria-label="Informations légales">
+		{liensLegaux.map((l) => (
+			<a href={l.href} class:list={[lien, 'text-turquoise hover:text-yellow']}>{l.label}</a>
+		))}
+	</nav>
 </footer>

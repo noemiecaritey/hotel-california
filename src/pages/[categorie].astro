@@ -1,0 +1,166 @@
+---
+// Pages catégorie : /rockstar et /single (catégorie « popstar » dans PocketBase).
+// Une section par modèle : le premier prend la mise en page A de la maquette, le second la mise en page B.
+// Mesures : maquette 1280×832. Tout est en vw (hauteurs comprises) pour garder les proportions de la maquette
+// sur tous les écrans : sinon les photos, cadrées en % de leur panneau, seraient coupées ou mal placées.
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Panneau from '@/components/sections/Panneau.astro';
+import ActionsModele from '@/components/sections/ActionsModele.astro';
+import Star from '@/assets/images/star.svg';
+import { getModeles } from '@/lib/pocketbase';
+
+export function getStaticPaths() {
+	return [
+		{ params: { categorie: 'rockstar' }, props: { select: 'rockstar', titre: 'Rockstar' } },
+		{ params: { categorie: 'single' }, props: { select: 'popstar', titre: 'Single' } },
+	];
+}
+
+const { select, titre } = Astro.props;
+const [a, b] = await getModeles(select);
+
+// Les photos d'une vue pour une couleur de monture, une par couleur de verre : { monture, verres: { bleu: url… } }
+const photo = (modele: typeof a, vue: 'face' | 'droite', monture: string) => ({
+	monture,
+	verres: Object.fromEntries((modele?.variantes ?? []).filter((v) => v.monture === monture).map((v) => [v.verre, v[vue]])),
+});
+
+const etoiles = [1, 2, 3];
+const single = select === 'popstar';
+
+// Ce qui change d'une page à l'autre (maquettes Rockstar et Popstar) : la couleur des panneaux et leurs photos
+// (vue, monture, verre de départ, cadrage en % du panneau). Formes, bandes et espacements sont communs.
+const panneaux = single
+	? {
+			aGauche: { fond: 'bg-turquoise', photos: [{ ...photo(a, 'droite', 'rouge'), verre: 'jaune', style: 'left:-12%;top:-24%;width:58.4%', retourner: true, alt: `Lunettes ${a?.nom}` }] },
+			aDroite: { fond: 'bg-yellow', photos: [{ ...photo(a, 'face', 'marron'), verre: 'bleu', style: 'left:51.2%;top:-6.9%;width:46.5%' }] },
+			aBas: {
+				fond: 'bg-red',
+				photos: [
+					{ ...photo(a, 'face', 'bleu'), verre: 'jaune', style: 'left:0%;top:-28%;width:57.2%' },
+					{ ...photo(a, 'droite', 'bleu'), verre: 'jaune', style: 'left:59.1%;top:-27.3%;width:65.5%' },
+				],
+			},
+			bGauche: { fond: 'bg-brown', photos: [{ ...photo(b, 'droite', 'rouge'), verre: 'jaune', style: 'left:-14.6%;top:-55.1%;width:540%', alt: `Lunettes ${b?.nom}` }] },
+			bHaut: { fond: 'bg-yellow', photos: [{ ...photo(b, 'face', 'rouge'), verre: 'marron', style: 'left:-1.2%;top:-28.5%;width:77.1%' }] },
+			bBas: { fond: 'bg-turquoise', photos: [{ ...photo(b, 'face', 'rouge'), verre: 'rouge', style: 'left:19.9%;top:-25.8%;width:79.4%' }] },
+		}
+	: {
+			aGauche: { fond: 'bg-yellow', photos: [{ ...photo(a, 'face', 'bleu'), verre: 'bleu', style: 'left:-44.8%;top:-73%;width:96.8%', alt: `Lunettes ${a?.nom}` }] },
+			aDroite: { fond: 'bg-brown', photos: [{ ...photo(a, 'droite', 'rouge'), verre: 'jaune', style: 'left:6.5%;top:-63.2%;width:93%', retourner: true }] },
+			aBas: {
+				fond: 'bg-red',
+				photos: [
+					{ ...photo(a, 'face', 'marron'), verre: 'bleu', style: 'left:61%;top:-55.2%;width:78.5%' },
+					{ ...photo(a, 'droite', 'marron'), verre: 'bleu', style: 'left:-2%;top:-47.4%;width:71.4%' },
+				],
+			},
+			bGauche: {
+				fond: 'bg-red',
+				photos: [
+					{ ...photo(b, 'face', 'marron'), verre: 'bleu', style: 'left:0.1%;top:-14.3%;width:187.5%', alt: `Lunettes ${b?.nom}` },
+					{ ...photo(b, 'face', 'bleu'), verre: 'marron', style: 'left:-68.5%;top:37.4%;width:168.3%' },
+				],
+			},
+			bHaut: { fond: 'bg-yellow', photos: [{ ...photo(b, 'face', 'marron'), verre: 'rouge', style: 'left:-0.2%;top:-25.2%;width:78.1%' }] },
+			bBas: { fond: 'bg-turquoise', photos: [{ ...photo(b, 'face', 'jaune'), verre: 'marron', style: 'left:20.1%;top:-24.3%;width:78.1%' }] },
+		};
+
+// Bandeau « Bestseller » : sur la page Single (maquette Popstar), il est en bas des panneaux,
+// avec des étoiles un peu plus grandes, et il apparaît aussi dans le panneau jaune du second modèle.
+const etoile = single ? 'h-[1.91vw] w-auto text-turquoise' : 'h-[1.72vw] w-auto text-turquoise';
+const ecart = single ? 'flex gap-[2.15vw]' : 'flex gap-[2.3vw]';
+const marge = single ? 'mx-[4.84vw] font-rubik-mono text-[2.5vw] leading-none' : 'mx-[5.08vw] font-rubik-mono text-[2.5vw] leading-none';
+---
+
+<BaseLayout title={`${titre} · Hotel California`} hero={single ? 'popstar' : 'rockstar'}>
+	<!-- Titre de la page pour les lecteurs d'écran et les moteurs de recherche (absent de la maquette) -->
+	<h1 class="sr-only">Collection {titre}</h1>
+	<div class="overflow-x-clip pb-[7.03vw]">
+		{a && (
+			<section>
+				<h2 class="mt-[5vw] text-center font-rubik-mono text-[2.81vw] leading-none">{a.nom}</h2>
+
+				<!-- Panneau du haut coupé en diagonale : partie jaune à gauche, partie brune à droite -->
+				{/* (couleurs des deux parties : voir panneaux.aGauche / aDroite, elles changent sur Single) */}
+				<div class="relative ml-[1.95vw] mt-[3.2vw] h-[27.19vw] w-[95.39vw]">
+					<Panneau class="absolute! inset-0" forme="0 0, 42.18% 0, 58.56% 100%, 0 100%" {...panneaux.aGauche} />
+					<Panneau class="absolute! inset-0" forme="44.14% 0, 100% 0, 100% 100%, 60.61% 100%" {...panneaux.aDroite} />
+				</div>
+
+				<Panneau
+					class="ml-[1.95vw] mt-[1.64vw] h-[27.19vw] w-[95.39vw]"
+					{...panneaux.aBas}
+					decor={['jaune', 'bleu']}
+					bandes={[
+						{ verre: 'jaune', style: 'left:81.48vw;width:2.66vw' },
+						{ verre: 'bleu', style: 'left:86.02vw;width:3.44vw' },
+						{ verre: 'rouge', style: 'left:90.55vw;width:4.14vw' },
+						{ verre: 'marron', style: 'left:95.23vw;width:4.14vw' },
+					]}
+				>
+					<div class={single ? 'absolute left-[21.95vw] top-[25.63vw] flex -translate-y-1/2 items-center' : 'absolute left-[23.44vw] top-[2.97vw] flex -translate-y-1/2 items-center'}>
+						<div class={ecart}>{etoiles.map(() => <Star class={etoile} />)}</div>
+						<span class:list={[marge, 'text-yellow']}>Bestseller</span>
+						<div class={ecart}>{etoiles.map(() => <Star class={etoile} />)}</div>
+					</div>
+				</Panneau>
+
+				<!-- Les boutons suivent le panneau aux bandes de couleur -->
+				<ActionsModele slug={a.slug} nom={a.nom} variantes={a.variantes} depart={panneaux.aBas.photos[0]} />
+			</section>
+		)}
+
+		{b && (
+			<section>
+				<h2 class="mt-[5.55vw] text-center font-rubik-mono text-[2.81vw] leading-none">{b.nom}</h2>
+
+				<div class="mt-[2.89vw] ml-[1.95vw] flex gap-[1.41vw]">
+					<Panneau
+						class="h-[51.88vw] w-[30.55vw]"
+						{...panneaux.bGauche}
+					/>
+					<!-- Colonne de droite : 4px plus bas que le panneau de gauche, comme sur la maquette -->
+					<div class="mt-[0.31vw] flex flex-col gap-[2.03vw]">
+						<Panneau
+							class="h-[24.61vw] w-[63.36vw]"
+							forme="0 0, 71% 0, 98.4% 100%, 0 100%"
+							{...panneaux.bHaut}
+							decor={single ? ['rouge', 'bleu'] : []}
+							bandes={[
+								{ verre: 'marron', style: 'left:48.2vw;width:2.66vw' },
+								{ verre: 'rouge', style: 'left:52.73vw;width:3.44vw' },
+								{ verre: 'bleu', style: 'left:57.27vw;width:4.14vw' },
+								{ verre: 'jaune', style: 'left:61.95vw;width:4.14vw' },
+							]}
+						>
+							{single && (
+								<div class="absolute left-[0.31vw] top-[23.05vw] flex -translate-y-1/2 items-center">
+									<div class={ecart}>{etoiles.map(() => <Star class={etoile} />)}</div>
+									<span class:list={[marge, 'text-red']}>Bestseller</span>
+									<div class={ecart}>{etoiles.map(() => <Star class={etoile} />)}</div>
+								</div>
+							)}
+						</Panneau>
+						<Panneau
+							class="h-[24.92vw] w-[63.36vw]"
+							forme="27.4% 0, 100% 0, 100% 100%, 3% 100%"
+							{...panneaux.bBas}
+							bandes={[
+								{ verre: 'jaune', style: 'left:0;width:4.3vw' },
+								{ verre: 'marron', style: 'left:4.92vw;width:4.38vw' },
+								{ verre: 'bleu', style: 'left:10.39vw;width:3.59vw' },
+								// Sur Single, la bande rouge a un contour brun
+								{ verre: 'rouge', style: 'left:15.94vw;width:2.81vw', contour: single || undefined },
+							]}
+						/>
+					</div>
+				</div>
+
+				<!-- Les boutons suivent le dernier panneau dont on a cliqué une bande (au départ, celui du haut) -->
+				<ActionsModele slug={b.slug} nom={b.nom} variantes={b.variantes} depart={panneaux.bHaut.photos[0]} />
+			</section>
+		)}
+	</div>
+</BaseLayout>
+

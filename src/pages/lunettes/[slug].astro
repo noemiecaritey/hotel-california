@@ -1,0 +1,284 @@
+---
+// Page produit : une page par modèle (/lunettes/kurt-cobain…), générée à partir de PocketBase.
+// Les couleurs choisies sont dans l'adresse (?monture=rouge&verre=jaune) : un lien peut ouvrir une variante précise.
+// Mesures : maquette 1280×832. La section produit utilise l'unité --u = min(1vw, 1.55vh) : 1vw sur l'écran de la maquette,
+// moins sur un écran plus large que haut, pour que toute la section tienne dans l'écran.
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Star from '@/assets/images/star.svg';
+import { getCadrage, getModele, getSlugs, styleVueDroite } from '@/lib/pocketbase';
+import { formatPrixCourt } from '@/lib/format';
+import { TAILLES, TAILLE_PAR_DEFAUT } from '@/lib/panier';
+import { fondLibre } from '@/lib/couleurs';
+
+export async function getStaticPaths() {
+	return (await getSlugs()).map((slug) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const { variantes, montures, verres } = await getModele(slug);
+if (!variantes.length) return Astro.redirect('/');
+
+// Prix du modèle (PocketBase) ; tailles communes à tous les modèles pour l'instant (voir src/lib/panier.ts).
+const prix = variantes[0].prix;
+const prixAffiche = formatPrixCourt(prix);
+const tailles = TAILLES;
+
+// Variante affichée au départ (comme sur la maquette : monture bleue, verre jaune), sinon la première.
+const depart = variantes.find((v) => v.monture === 'bleu' && v.verre === 'jaune') ?? variantes[0];
+const nom = depart.nom;
+
+// Pastilles dans l'ordre de la maquette.
+const ordre = ['rouge', 'bleu', 'jaune', 'marron'];
+const trier = <T extends { nom: string }>(liste: T[]) =>
+	[...liste].sort((a, b) => ordre.indexOf(a.nom) - ordre.indexOf(b.nom));
+const groupes = [
+	{ type: 'monture', titre: 'Couleurs de monture', couleurs: trier(montures) },
+	{ type: 'verre', titre: 'Couleurs de verres', couleurs: trier(verres) },
+];
+
+// Cadrage des photos d'après la place réelle des lunettes dans chaque photo (les marges changent d'un modèle à l'autre).
+const [cFace, cDroite] = await Promise.all([getCadrage(depart.face), getCadrage(depart.droite)]);
+
+// Hero : la monture de 4.84vw à 95vw, son haut à 0.63vw du haut du hero (maquette).
+const largeurHero = 90.16 / (cFace.x1 - cFace.x0);
+const styleHero = `left:${4.84 - cFace.x0 * largeurHero}vw;top:${0.63 - cFace.y0 * largeurHero * cFace.ratio}vw;width:${largeurHero}vw`;
+
+// Grand panneau (733×606 px sur la maquette), cadrage en % du panneau. Les flèches font défiler les vues :
+// vue de droite (voir styleVueDroite) ; vue de face sur 90% de la largeur, centrée.
+const panneau = { w: 733, h: 606 };
+const pct = (v: number, total: number) => `${((v / total) * 100).toFixed(2)}%`;
+const faceW = (0.9 * panneau.w) / (cFace.x1 - cFace.x0);
+const faceH = faceW * cFace.ratio;
+const vues = [
+	{
+		id: 'droite',
+		style: styleVueDroite(cDroite),
+	},
+	{
+		id: 'face',
+		style: `left:${pct(0.05 * panneau.w - cFace.x0 * faceW, panneau.w)};top:${pct(panneau.h / 2 - ((cFace.y0 + cFace.y1) / 2) * faceH, panneau.h)};width:${pct(faceW, panneau.w)}`,
+	},
+] as const;
+
+// Menu : la catégorie du modèle, son nom (page en cours), le paiement.
+const categories: Record<string, { label: string; href: string }> = {
+	rockstar: { label: 'Rockstar', href: '/rockstar' },
+	popstar: { label: 'Popstar', href: '/single' },
+};
+const nav = [
+	categories[depart.categorie] ?? { label: 'Accueil', href: '/' },
+	{ label: nom, href: `/lunettes/${slug}`, actif: true },
+	{ label: 'Payer', href: '/panier' },
+];
+
+// Panneau rouge et hero brun : changent de couleur si la monture ou le verre ont la même (voir fondLibre).
+// Les flèches jaunes du panneau sont du décor que le fond de remplacement évite.
+const fondPanneau = fondLibre('bg-red', [depart.monture, depart.verre], ['jaune']);
+const fondHero = fondLibre('bg-brown', [depart.monture, depart.verre]);
+---
+
+<BaseLayout title={`${nom} · Hotel California`} description={`Lunettes ${nom}`} hero="produit" nav={nav}>
+	<!-- Hero : vue de face de la variante choisie, très agrandie -->
+	<img
+		slot="hero"
+		src={depart.face}
+		alt=""
+		class="absolute max-w-none"
+		style={styleHero}
+		data-hero-image
+		data-fond-depart={fondHero}
+	/>
+
+	<section class="pb-[calc(var(--u)*3.28)]" style="--u: min(1vw, 1.55vh)" data-produit>
+		<!-- Variantes du modèle, lues par le script ci-dessous -->
+		<script type="application/json" data-variantes set:html={JSON.stringify(variantes)} />
+
+		<h1 class="mt-[calc(var(--u)*6.41)] text-center font-rubik-mono text-[calc(var(--u)*2.81)] leading-none">{nom}</h1>
+
+		<div class="mt-[calc(var(--u)*2.58)] flex items-start">
+			<!-- Grand panneau : une vue de la variante choisie, les flèches passent d'une vue à l'autre -->
+			<div
+				class:list={['relative ml-[calc(var(--u)*2.03)] h-[calc(var(--u)*47.34)] w-[calc(var(--u)*57.27)] shrink-0 overflow-hidden', fondPanneau]}
+				data-panneau-produit
+				data-vues={JSON.stringify(vues)}
+			>
+				<img
+					src={depart[vues[0].id]}
+					alt={`Lunettes ${nom}`}
+					class="absolute max-w-none"
+					style={vues[0].style}
+					data-image
+				/>
+				<div class="absolute bottom-[calc(var(--u)*1.88)] left-1/2 flex -translate-x-1/2 gap-[calc(var(--u)*5.94)]">
+					{[-1, 1].map((sens) => (
+						<button
+							type="button"
+							class="h-[calc(var(--u)*2.97)] w-[calc(var(--u)*2.66)] cursor-pointer text-yellow transition motion-safe:hover:scale-125"
+							aria-label={sens < 0 ? 'Vue précédente' : 'Vue suivante'}
+							data-fleche={sens}
+						>
+							<svg viewBox="0 0 34 38" class:list={['size-full', sens > 0 && '-scale-x-100']} fill="none" stroke="currentColor" stroke-width="2.5">
+								<polyline points="32,1 2,19 32,37" />
+							</svg>
+						</button>
+					))}
+				</div>
+			</div>
+
+			<div class="flex-1">
+				{groupes.map((groupe, i) => (
+					<div role="group" aria-label={groupe.titre} class:list={['pl-[calc(var(--u)*1.64)]', i === 0 ? 'mt-[calc(var(--u)*0.23)]' : 'mt-[calc(var(--u)*2.89)]']}>
+						<h2 class="font-satoshi text-[calc(var(--u)*2.81)] leading-none">{groupe.titre}</h2>
+						<div class="mt-[calc(var(--u)*0.78)] flex gap-[calc(var(--u)*1.95)]">
+							{groupe.couleurs.map((couleur) => (
+								<button
+									type="button"
+									class="group relative size-[calc(var(--u)*5.7)] cursor-pointer transition motion-safe:hover:translate-y-[calc(var(--u)*-0.4)]"
+									aria-label={`${groupe.type === 'monture' ? 'Monture' : 'Verre'} ${couleur.label}`}
+									aria-pressed={depart[groupe.type as 'monture' | 'verre'] === couleur.nom}
+									data-type={groupe.type}
+									data-couleur={couleur.nom}
+								>
+									<img src={couleur.pastille} alt="" class="size-full object-cover" />
+									<!-- Étoile sur la couleur choisie (jaune sur le rouge, sinon rouge) -->
+									<Star
+										class:list={[
+											'absolute inset-0 m-auto hidden h-[calc(var(--u)*4.45)] w-auto group-aria-pressed:block',
+											couleur.nom === 'rouge' ? 'text-yellow' : 'text-red',
+										]}
+									/>
+								</button>
+							))}
+						</div>
+					</div>
+				))}
+
+				<div role="group" aria-label="Tailles" class="mt-[calc(var(--u)*2.58)] pl-[calc(var(--u)*1.64)]">
+					<h2 class="font-satoshi text-[calc(var(--u)*2.81)] leading-none">Tailles</h2>
+					<div class="mt-[calc(var(--u)*0.86)] flex gap-[calc(var(--u)*1.95)]">
+						{tailles.map((taille) => (
+							<button
+								type="button"
+								class="group relative flex h-[calc(var(--u)*4.38)] w-[calc(var(--u)*9.84)] cursor-pointer transition motion-safe:hover:translate-y-[calc(var(--u)*-0.4)] items-center justify-center border-[calc(var(--u)*0.31)] border-red bg-yellow font-satoshi text-[calc(var(--u)*2.58)] leading-none text-red aria-pressed:border-yellow aria-pressed:bg-red aria-pressed:font-rubik-mono aria-pressed:text-[calc(var(--u)*1.875)] aria-pressed:text-brown"
+								aria-pressed={taille === TAILLE_PAR_DEFAUT}
+								data-taille={taille}
+							>
+								<!-- Étoile derrière la taille choisie -->
+								<Star class="absolute inset-0 m-auto hidden h-[calc(var(--u)*3.44)] w-auto text-yellow group-aria-pressed:block" />
+								<span class="relative">{taille}</span>
+							</button>
+						))}
+					</div>
+				</div>
+
+				<!-- Bandeau du prix, jusqu'au bord droit de la page -->
+				<div class="relative mt-[calc(var(--u)*2.19)] h-[calc(var(--u)*8.83)] bg-turquoise pl-[calc(var(--u)*1.25)] pt-[calc(var(--u)*0.86)]">
+					<p class="font-satoshi text-[calc(var(--u)*1.875)] leading-none">Montant à payer</p>
+					<p class="mt-[calc(var(--u)*1.09)] font-rubik-mono text-[calc(var(--u)*2.5)] leading-none">{prixAffiche}</p>
+					<button
+						type="button"
+						class="absolute right-[calc(var(--u)*1.48)] top-[calc(var(--u)*3.05)] h-[calc(var(--u)*4.38)] w-[calc(var(--u)*21.56)] cursor-pointer border-[calc(var(--u)*0.31)] border-yellow bg-brown font-satoshi text-[calc(var(--u)*2.58)] leading-none text-yellow transition hover:bg-yellow hover:text-brown"
+						data-ajouter
+						data-slug={slug}
+						data-nom={nom}
+						data-prix={prix}
+					>
+						Ajouter au panier
+					</button>
+				</div>
+			</div>
+		</div>
+	</section>
+</BaseLayout>
+
+<script>
+	import { fondLibre, fonds } from '@/lib/couleurs';
+	import { ajouter } from '@/lib/panier';
+
+	// Navigation sans rechargement (ClientRouter) : relancé à chaque arrivée sur une page. Rien à faire hors de la page produit.
+	document.addEventListener('astro:page-load', () => {
+		type Lunette = { monture: string; verre: string; face: string; droite: string };
+
+		const page = document.querySelector<HTMLElement>('[data-produit]');
+		if (!page) return;
+		const variantes: Lunette[] = JSON.parse(page.querySelector('[data-variantes]')!.textContent!);
+		const image = page.querySelector<HTMLImageElement>('[data-image]')!;
+		const panneau = page.querySelector<HTMLElement>('[data-panneau-produit]')!;
+		const hero = document.querySelector<HTMLImageElement>('[data-hero-image]')!;
+		const heroFond = document.querySelector<HTMLElement>('[data-hero-fond]')!;
+		const pastilles = page.querySelectorAll<HTMLButtonElement>('[data-couleur]');
+		const tailles = page.querySelectorAll<HTMLButtonElement>('[data-taille]');
+
+		const vues: { id: 'face' | 'droite'; style: string }[] = JSON.parse(panneau.dataset.vues!);
+		let vue = 0;
+
+		// Couleurs de départ : celles de l'adresse, sinon celles affichées.
+		const params = new URLSearchParams(location.search);
+		const choisie = (type: string) =>
+			page.querySelector<HTMLElement>(`[data-type="${type}"][aria-pressed="true"]`)?.dataset.couleur ?? '';
+		const choix = {
+			monture: params.get('monture') ?? choisie('monture'),
+			verre: params.get('verre') ?? choisie('verre'),
+		};
+
+		const changerFond = (el: HTMLElement, fond: string) => {
+			el.classList.remove(...Object.values(fonds));
+			el.classList.add(fond);
+		};
+
+		function afficher() {
+			// Si la combinaison n'existe pas, on garde la monture choisie avec le premier verre disponible.
+			const v =
+				variantes.find((v) => v.monture === choix.monture && v.verre === choix.verre) ??
+				variantes.find((v) => v.monture === choix.monture) ??
+				variantes[0];
+			choix.monture = v.monture;
+			choix.verre = v.verre;
+
+			image.src = v[vues[vue].id];
+			image.setAttribute('style', vues[vue].style);
+			hero.src = v.face;
+			changerFond(panneau, fondLibre('bg-red', [v.monture, v.verre], ['jaune']));
+			changerFond(heroFond, fondLibre('bg-brown', [v.monture, v.verre]));
+			pastilles.forEach((b) =>
+				b.setAttribute('aria-pressed', String(choix[b.dataset.type as 'monture' | 'verre'] === b.dataset.couleur)),
+			);
+			history.replaceState(null, '', `?monture=${v.monture}&verre=${v.verre}`);
+		}
+
+		pastilles.forEach((b) =>
+			b.addEventListener('click', () => {
+				choix[b.dataset.type as 'monture' | 'verre'] = b.dataset.couleur!;
+				afficher();
+			}),
+		);
+		page.querySelectorAll<HTMLButtonElement>('[data-fleche]').forEach((b) =>
+			b.addEventListener('click', () => {
+				vue = (vue + Number(b.dataset.fleche) + vues.length) % vues.length;
+				afficher();
+			}),
+		);
+		tailles.forEach((b) =>
+			b.addEventListener('click', () => tailles.forEach((t) => t.setAttribute('aria-pressed', String(t === b)))),
+		);
+
+		// Ajouter au panier : la variante affichée (choix est toujours une combinaison qui existe), la taille choisie.
+		const bouton = page.querySelector<HTMLButtonElement>('[data-ajouter]')!;
+		bouton.addEventListener('click', () => {
+			const v = variantes.find((v) => v.monture === choix.monture && v.verre === choix.verre)!;
+			ajouter({
+				slug: bouton.dataset.slug!,
+				nom: bouton.dataset.nom!,
+				monture: v.monture,
+				verre: v.verre,
+				taille: page.querySelector<HTMLElement>('[data-taille][aria-pressed="true"]')!.dataset.taille!,
+				image: v.droite, // vue de droite, comme sur la maquette du panier
+				prix: Number(bouton.dataset.prix),
+			});
+			// Confirmation pendant 1,5 s
+			bouton.textContent = 'Ajouté !';
+			setTimeout(() => (bouton.textContent = 'Ajouter au panier'), 1500);
+		});
+		afficher();
+	});
+</script>

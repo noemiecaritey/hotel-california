@@ -1,19 +1,66 @@
 ---
 import { Image } from 'astro:assets';
 import teteHeader from '@/assets/images/tete-header.avif';
+import teteHeader2 from '@/assets/images/tete-header2.avif';
+import imgHeader from '@/assets/images/img-header.avif';
+import panierHeader from '@/assets/images/panier-header.png';
 import Logo from '@/assets/images/logo-header.svg';
 import Star from '@/assets/images/star.svg';
+// Icône panier en image (panier-icon.svg contient une photo de 5 Mo, qu'Astro recopierait dans chaque page)
+import panierIcon from '@/assets/images/panier-icon.webp';
+
+interface Lien {
+	label: string;
+	href: string;
+	actif?: boolean; // page en cours : en jaune
+}
+
+interface Props {
+	/** Hero des pages catégorie (maquettes Rockstar et Popstar) ou de la page produit (image passée dans le slot "hero") ; sans : celui de l'accueil */
+	hero?: 'rockstar' | 'popstar' | 'produit' | 'panier';
+	/** Liens du menu, séparés par trois étoiles */
+	nav?: Lien[];
+}
+
+const {
+	hero,
+	nav = [
+		{ label: 'Rockstar', href: '/rockstar' },
+		{ label: 'Accueil', href: '/' },
+		{ label: 'Popstar', href: '/single' },
+	],
+} = Astro.props;
+
+// Images faites à la largeur de la maquette (2560×630, sujet déjà placé), couleur du fond derrière (celle de
+// l'image, qui remplit les côtés), et décalage horizontal mesuré sur la maquette (Rockstar : 19px vers la droite
+// pour une image de 315px de haut, soit 6% de la hauteur du hero).
+// Cadrage : l'image entière (contain), ou toute la largeur (cover) pour le panier, dont le dégradé et les palmiers
+// vont jusqu'aux bords : le haut est alors coupé sur un écran large.
+const heros = {
+	rockstar: { image: imgHeader, fond: 'bg-brown', decalage: 'translate-x-[1.51vh] md:translate-x-[2.11vh]', cadrage: 'object-contain' },
+	popstar: { image: teteHeader2, fond: 'bg-turquoise', decalage: '', cadrage: 'object-contain' },
+	produit: { image: undefined, fond: 'bg-brown', decalage: '', cadrage: '' },
+	panier: { image: panierHeader, fond: 'bg-turquoise', decalage: '', cadrage: 'object-cover' }, // ciel transparent dans l'image
+};
+const page = hero && heros[hero];
 ---
 
 <header class="w-full relative m-0">
-	<!-- Cadrage de la maquette : image 1.375× plus haute que le bandeau, remontée de 10.9% et décalée de 6.25% vers la droite -->
-	<div class="relative m-0 w-full h-[25vh] md:h-[35vh] bg-blue overflow-hidden">
-		<Image
-			src={teteHeader}
-			alt=""
-			format="avif"
-			class="absolute inset-x-0 top-0 mx-auto h-[137.5%] w-auto max-w-none translate-x-[6.25%] translate-y-[-10.9%]"
-		/>
+	<!-- Même hauteur de hero sur toutes les pages -->
+	<div class:list={['relative m-0 w-full h-[25vh] md:h-[35vh] overflow-hidden', page ? page.fond : 'bg-blue']} data-hero-fond={page?.fond}>
+		<!-- Accueil : cadrage de la maquette, image 1.375× plus haute que le bandeau, remontée de 10.9% et décalée de 6.25% vers la droite.
+		     Pages catégorie : l'image entière, à la hauteur du hero (cadrage de la maquette), centrée et calée en bas.
+		     Page produit : son image arrive par le slot "hero". -->
+		{!page && (
+			<Image
+				src={teteHeader}
+				alt=""
+				format="avif"
+				class="absolute inset-x-0 top-0 mx-auto h-[137.5%] w-auto max-w-none translate-x-[6.25%] translate-y-[-10.9%]"
+			/>
+		)}
+		{page?.image && <Image src={page.image} alt="" format="avif" class:list={['absolute inset-0 size-full object-bottom', page.cadrage, page.decalage]} />}
+		<slot name="hero" />
 	</div>
 	<div class="w-full h-[2.28vh] bg-yellow mt-4">
 	</div>
@@ -21,20 +68,52 @@ import Star from '@/assets/images/star.svg';
 	</div>
 	<div class="w-full h-[4.09vh] bg-red mt-2">
 	</div>
-	<Logo class="absolute z-10 h-[17.67vh] w-auto inset-x-0 mx-auto top-[30vh]" />
-	<nav class="mx-0 flex bg-brown mt-2 h-[8.53vh] items-center justify-between px-28 align-center">
-		<a href="/" class="text-white hover:text-yellow font-rubik-mono transition duration-300 ease-out motion-safe:hover:-translate-y-0.5 text-2xl">Rockstar</a>
-		<div class="flex space-x-2">
-			<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
-			<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
-			<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
-		</div>
-		<a href="/" class="text-white hover:text-yellow font-rubik-mono transition duration-300 ease-out motion-safe:hover:-translate-y-0.5 text-2xl">Single</a>
-		<div class="flex space-x-2">
-			<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
-			<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
-			<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
-		</div>
-		<a href="/" class="text-white hover:text-yellow font-rubik-mono transition duration-300 ease-out motion-safe:hover:-translate-y-0.5 text-2xl">Bestseller</a>
-	</nav>
+	<!-- Logo : ramène à l'accueil -->
+	<a href="/" class="absolute z-10 inset-x-0 top-[30vh] mx-auto block w-fit transition motion-safe:hover:scale-105" aria-label="Hotel California, accueil">
+		<Logo class="h-[17.67vh] w-auto" />
+	</a>
+	<!-- Panier toujours visible, en haut à droite de l'écran : centré dans la hauteur du menu, qui reste lui aussi
+	     en haut de l'écran au défilement (52px de haut, à 31px du bord sur la maquette 1280×832).
+	     Le compteur recouvre exactement la pastille dessinée dans l'icône (cercle de 20px sur 54, en haut à droite). -->
+	<a href="/panier" class="fixed z-50 top-[1.14vh] right-[2.42vw] block h-[6.25vh] aspect-square transition motion-safe:hover:scale-110" aria-label="Panier" data-panier>
+		<Image src={panierIcon} alt="" widths={[54, 108, 216]} sizes="6.25vh" class="size-full" />
+		<span
+			class="absolute left-[57.3%] top-0 flex size-[37%] items-center justify-center rounded-full border-[0.25vh] border-yellow bg-brown font-rubik-mono text-[1.2vh] leading-none text-yellow"
+			aria-live="polite"
+			data-panier-nombre
+		>0</span>
+	</a>
 </header>
+<!-- Menu hors du <header> : sticky ne colle que dans son parent, ici la page entière. Il reste en haut de l'écran au défilement. -->
+	<nav class="sticky top-0 z-40 mx-0 flex bg-brown mt-2 h-[8.53vh] items-center justify-between px-28 align-center">
+		{nav.map((lien, i) => (
+			<>
+				{i > 0 && (
+					<div class="flex space-x-2">
+						<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
+						<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
+						<Star class="h-[4vh] w-auto text-[#4CA9C1]" />
+					</div>
+				)}
+				<a
+					href={lien.href}
+					class:list={['hover:text-yellow font-rubik-mono transition duration-300 ease-out motion-safe:hover:-translate-y-0.5 text-2xl', lien.actif ? 'text-yellow' : 'text-white']}
+					aria-current={lien.actif ? 'page' : undefined}
+				>{lien.label}</a>
+			</>
+		))}
+	</nav>
+
+<script>
+	import { nombreArticles } from '@/lib/panier';
+
+	// Compteur du panier : au chargement de chaque page, à chaque ajout, et quand un autre onglet change le panier.
+	const afficher = () => {
+		const n = nombreArticles();
+		document.querySelectorAll('[data-panier-nombre]').forEach((el) => (el.textContent = n > 99 ? '99+' : String(n)));
+		document.querySelectorAll('[data-panier]').forEach((el) => el.setAttribute('aria-label', `Panier, ${n} article${n > 1 ? 's' : ''}`));
+	};
+	document.addEventListener('astro:page-load', afficher);
+	window.addEventListener('panier', afficher);
+	window.addEventListener('storage', (e) => e.key === 'panier' && afficher());
+</script>

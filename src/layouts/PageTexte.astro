@@ -1,0 +1,32 @@
+---
+// Mise en page des pages de texte (contact, à propos, pages légales) : titre comme celui du panier,
+// puis une colonne de texte centrée. Le contenu (h2, p, ul…) est mis en forme ici, sans classes à écrire.
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+interface Props {
+	titre: string;
+	description?: string;
+	/** Date de mise à jour, affichée sous le titre (pages légales) */
+	majLe?: string;
+}
+
+const { titre, description, majLe } = Astro.props;
+---
+
+<BaseLayout title={`${titre} · Hotel California`} description={description}>
+	<article class="mx-auto w-[70vw] pb-[7.03vw] pt-[2.89vw]">
+		<h1 class="font-rubik-mono text-[2.81vw] leading-none">{titre}</h1>
+		{majLe && <p class="mt-[1vw] font-satoshi text-[1.17vw] text-brown/70">Dernière mise à jour : {majLe}</p>}
+
+		<div
+			class="mt-[2.34vw] font-satoshi text-[1.41vw] leading-snug [&_a]:text-red [&_a]:underline [&_a:hover]:text-brown [&_h2]:mb-[0.78vw] [&_h2]:mt-[2.34vw] [&_h2]:font-rubik-mono [&_h2]:text-[1.56vw] [&_h2]:leading-none [&_p+p]:mt-[0.78vw] [&_strong]:font-bold [&_ul]:mt-[0.78vw] [&_ul]:list-disc [&_ul]:pl-[1.88vw] [&_li+li]:mt-[0.39vw]"
+		>
+			<!-- Bandeau rappelant que le site est fictif -->
+			<p class="mb-[2.34vw] border-[0.31vw] border-yellow bg-turquoise px-[1.25vw] py-[0.78vw]">
+				Hotel California est une boutique <strong>fictive</strong> : aucune commande n'est expédiée, aucun paiement
+				n'est encaissé, et les informations ci-dessous sont inventées.
+			</p>
+			<slot />
+		</div>
+	</article>
+</BaseLayout>

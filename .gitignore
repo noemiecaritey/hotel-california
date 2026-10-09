@@ -23,3 +23,7 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# fichiers temporaires de la base PocketBase (SQLite)
+pocketbase/pb_data/*.db-shm
+pocketbase/pb_data/*.db-wal

@@ -1,0 +1,160 @@
+---
+// Page panier : les articles viennent du navigateur (localStorage, voir src/lib/panier.ts), affichés par le script.
+// Mesures : maquette 1280 de large (px / 12.8), dans l'unité --u = min(1vw, 1.148vh) : la section, du titre au bouton
+// Payer (87.1 unités), tient dans la hauteur de l'écran avec un article ; elle est centrée et garde les proportions.
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { LIVRAISON, DELAI_LIVRAISON } from '@/lib/panier';
+import { getCadrage, getNomsCouleurs, getSlugs, getModele, styleVueDroite } from '@/lib/pocketbase';
+
+// Frais de livraison et délai : voir src/lib/panier.ts (repris dans les conditions générales).
+const livraison = LIVRAISON;
+const delaiJours = DELAI_LIVRAISON;
+
+// Préparé au build, lu par le script : noms affichés des couleurs, cadrage de la vue de droite de chaque modèle.
+const noms = await getNomsCouleurs();
+const cadrages = Object.fromEntries(
+	await Promise.all(
+		(await getSlugs().catch(() => [])).map(async (slug) => {
+			const v = (await getModele(slug)).variantes[0];
+			return [slug, styleVueDroite(await getCadrage(v.droite))];
+		}),
+	),
+);
+
+const nav = [
+	{ label: 'Rockstar', href: '/rockstar' },
+	{ label: 'Popstar', href: '/single' },
+	{ label: 'Payer', href: '/panier', actif: true },
+];
+---
+
+<BaseLayout title="Panier · Hotel California" hero="panier" nav={nav}>
+	<section class="mx-auto w-[calc(var(--u)*100)]" style="--u: min(1vw, 1.148vh)" data-page-panier data-livraison={livraison} data-delai={delaiJours}>
+		<script type="application/json" data-donnees set:html={JSON.stringify({ noms, cadrages })} />
+
+		<h1 class="ml-[calc(var(--u)*1.88)] mt-[calc(var(--u)*2.89)] font-rubik-mono text-[calc(var(--u)*2.81)] leading-none">Panier</h1>
+
+		<!-- Une carte par article (modèle ci-dessous, rempli par le script) -->
+		<ul class="ml-[calc(var(--u)*10.08)] mt-[calc(var(--u)*2.34)] flex w-[calc(var(--u)*82.66)] flex-col gap-[calc(var(--u)*2.34)]" data-liste></ul>
+		<p class="ml-[calc(var(--u)*10.08)] mt-[calc(var(--u)*2.34)] hidden font-satoshi text-[calc(var(--u)*2.81)] leading-none" data-vide>Ton panier est vide.</p>
+
+		<template data-modele>
+			<li>
+				<div class="relative bg-turquoise pb-[calc(var(--u)*2.58)] pt-[calc(var(--u)*0.78)]">
+					<p class="pl-[calc(var(--u)*0.94)] font-rubik-mono text-[calc(var(--u)*1.875)] leading-none" data-nom></p>
+					<div class="mt-[calc(var(--u)*0.7)] flex">
+						<!-- Vue de droite, cadrée comme sur la page produit ; fond jaune, rouge si le verre est jaune -->
+						<div class="relative ml-[calc(var(--u)*0.86)] h-[calc(var(--u)*29.3)] w-[calc(var(--u)*35.31)] shrink-0 overflow-hidden" data-photo>
+							<img alt="" class="absolute max-w-none" data-image />
+						</div>
+						<dl class="ml-[calc(var(--u)*1.56)] font-satoshi text-[calc(var(--u)*2.81)] leading-none">
+							<dt class="mt-[calc(var(--u)*1.09)]">Couleur monture</dt>
+							<dd class="mt-[calc(var(--u)*0.63)]" data-monture></dd>
+							<dt class="mt-[calc(var(--u)*3.44)]">Couleur verres</dt>
+							<dd class="mt-[calc(var(--u)*0.08)]" data-verre></dd>
+							<dt class="mt-[calc(var(--u)*2.19)]">Taille</dt>
+							<dd class="mt-[calc(var(--u)*0.55)]" data-taille></dd>
+						</dl>
+					</div>
+					<!-- Quantité (à 0, l'article est retiré du panier) -->
+					<div class="absolute bottom-[calc(var(--u)*2.5)] right-[calc(var(--u)*1.875)] flex items-center">
+						<div class="flex h-[calc(var(--u)*5.47)] border-[calc(var(--u)*0.31)] border-yellow">
+							<button type="button" class="flex w-[calc(var(--u)*5.625)] cursor-pointer items-center justify-center bg-brown transition hover:bg-red" aria-label="Retirer un" data-moins>
+								<svg viewBox="0 0 46 4" class="w-[calc(var(--u)*3.59)]"><rect width="46" height="4" fill="var(--color-yellow)" /></svg>
+							</button>
+							<span class="flex w-[calc(var(--u)*7.03)] items-center justify-center bg-yellow pl-[calc(var(--u)*0.16)] pt-[calc(var(--u)*0.31)] font-rubik-mono text-[calc(var(--u)*3.75)] leading-none text-red" data-quantite></span>
+							<button type="button" class="flex w-[calc(var(--u)*5.625)] cursor-pointer items-center justify-center bg-brown transition hover:bg-red" aria-label="Ajouter un" data-plus>
+								<svg viewBox="0 0 46 46" class="w-[calc(var(--u)*3.59)]"><rect y="21" width="46" height="4" fill="var(--color-yellow)" /><rect x="21" width="4" height="46" fill="var(--color-yellow)" /></svg>
+							</button>
+						</div>
+					</div>
+				</div>
+				<p class="h-[calc(var(--u)*4.14)] bg-yellow pl-[calc(var(--u)*0.78)] pt-[calc(var(--u)*1.25)] font-rubik-mono text-[calc(var(--u)*1.875)] leading-none" data-date></p>
+			</li>
+		</template>
+
+		<h2 class="ml-[calc(var(--u)*1.88)] mt-[calc(var(--u)*5.31)] font-rubik-mono text-[calc(var(--u)*2.81)] leading-none">Récapitulatif de la commande</h2>
+
+		<dl class="ml-[calc(var(--u)*9.375)] mt-[calc(var(--u)*3.28)] flex w-[calc(var(--u)*83.36)] flex-col gap-[calc(var(--u)*0.31)] font-satoshi text-[calc(var(--u)*2.81)] leading-none">
+			<div class="flex h-[calc(var(--u)*5.31)] items-center justify-between bg-yellow pb-[calc(var(--u)*0.63)] pl-[calc(var(--u)*0.78)] pr-[calc(var(--u)*3.98)]">
+				<dt>Sous-total</dt>
+				<dd data-sous-total></dd>
+			</div>
+			<div class="flex h-[calc(var(--u)*5.31)] items-center justify-between bg-turquoise pl-[calc(var(--u)*0.78)] pr-[calc(var(--u)*3.98)]">
+				<dt>Coût de la livraison</dt>
+				<dd data-livraison></dd>
+			</div>
+			<div class="flex h-[calc(var(--u)*5.31)] items-center justify-between bg-brown pl-[calc(var(--u)*0.78)] text-yellow">
+				<dt class="pt-[calc(var(--u)*0.63)]">TOTAL</dt>
+				<dd class="flex h-full w-[calc(var(--u)*14.61)] items-center border-[calc(var(--u)*0.31)] border-yellow bg-red pl-[calc(var(--u)*1.41)] pt-[calc(var(--u)*0.63)]" data-total></dd>
+			</div>
+		</dl>
+
+		<button
+			type="button"
+			class="mx-auto mb-[calc(var(--u)*10)] mt-[calc(var(--u)*7.42)] block h-[calc(var(--u)*4.38)] w-[calc(var(--u)*21.56)] cursor-pointer border-[calc(var(--u)*0.31)] border-yellow bg-red font-rubik-mono text-[calc(var(--u)*2.42)] leading-none text-yellow transition enabled:hover:bg-yellow enabled:hover:text-red disabled:cursor-not-allowed disabled:opacity-50"
+			data-payer
+		>
+			Payer
+		</button>
+	</section>
+</BaseLayout>
+
+<script>
+	import { lirePanier, changerQuantite } from '@/lib/panier';
+	import { formatPrixCourt } from '@/lib/format';
+
+	// Navigation sans rechargement (ClientRouter) : relancé à chaque arrivée sur une page. Rien à faire hors du panier.
+	document.addEventListener('astro:page-load', () => {
+		const page = document.querySelector<HTMLElement>('[data-page-panier]');
+		if (!page) return;
+		const { noms, cadrages } = JSON.parse(page.querySelector('[data-donnees]')!.textContent!);
+		const liste = page.querySelector<HTMLElement>('[data-liste]')!;
+		const modele = page.querySelector<HTMLTemplateElement>('[data-modele]')!;
+		const livraison = Number(page.dataset.livraison);
+		const champ = (racine: ParentNode, nom: string) => racine.querySelector<HTMLElement>(`[data-${nom}]`)!;
+
+		// « Blue Bird » -> « Blue bird », comme sur la maquette ; sans nom dans PocketBase : la couleur (« rouge » -> « Rouge »)
+		const nomCouleur = (type: 'monture' | 'verre', couleur: string) => {
+			const nom = noms[type][couleur] || couleur;
+			return nom.charAt(0).toUpperCase() + nom.slice(1).toLowerCase();
+		};
+
+		const date = new Date(Date.now() + Number(page.dataset.delai) * 86400000);
+		const livraisonPrevue = `Livraison prévue le ${date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`;
+
+		const afficher = () => {
+			const panier = lirePanier();
+			liste.replaceChildren(
+				...panier.map((article) => {
+					const carte = modele.content.cloneNode(true) as DocumentFragment;
+					champ(carte, 'nom').textContent = article.nom;
+					const image = champ(carte, 'image') as HTMLImageElement;
+					image.src = article.image;
+					image.setAttribute('style', cadrages[article.slug] ?? 'left:0;top:0;width:100%');
+					champ(carte, 'photo').classList.add(article.verre === 'jaune' ? 'bg-red' : 'bg-yellow');
+					champ(carte, 'monture').textContent = nomCouleur('monture', article.monture);
+					champ(carte, 'verre').textContent = nomCouleur('verre', article.verre);
+					champ(carte, 'taille').textContent = article.taille;
+					champ(carte, 'quantite').textContent = String(article.quantite);
+					champ(carte, 'moins').addEventListener('click', () => changerQuantite(article.id, article.quantite - 1));
+					champ(carte, 'plus').addEventListener('click', () => changerQuantite(article.id, article.quantite + 1));
+					champ(carte, 'date').textContent = livraisonPrevue;
+					return carte;
+				}),
+			);
+
+			const sousTotal = panier.reduce((total, a) => total + a.prix * a.quantite, 0);
+			const frais = panier.length ? livraison : 0;
+			champ(page, 'vide').classList.toggle('hidden', panier.length > 0);
+			champ(page, 'sous-total').textContent = formatPrixCourt(sousTotal);
+			page.querySelector('dd[data-livraison]')!.textContent = formatPrixCourt(frais);
+			champ(page, 'total').textContent = formatPrixCourt(sousTotal + frais);
+			(champ(page, 'payer') as HTMLButtonElement).disabled = !panier.length;
+		};
+
+		afficher();
+		window.addEventListener('panier', afficher);
+		document.addEventListener('astro:before-swap', () => window.removeEventListener('panier', afficher), { once: true });
+	});
+</script>

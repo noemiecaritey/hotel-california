@@ -4,97 +4,143 @@ import { Image } from 'astro:assets';
 import CarouselCard from '@/components/sections/CarouselCard.astro';
 import rockstarImg from '@/assets/images/rockstar-img.avif';
 import singleImg from '@/assets/images/single-img.avif';
+import { getLunette } from '@/lib/pocketbase';
 
-// Une entrée = l'image d'une card. Importe tes images en haut du fichier, puis remplace les null :
-// import aviator from '@/assets/images/aviator.avif';  →  { image: aviator, alt: 'Lunettes Aviator' }
-const cards = [
-	{ image: null, alt: '' },
-	{ image: null, alt: '' },
-	{ image: null, alt: '' },
-	{ image: null, alt: '' },
-	{ image: null, alt: '' },
-	{ image: null, alt: '' },
-];
+// Nouveautés : une entrée = une card, avec la vue de face du modèle (slug PocketBase) en monture rouge / verre jaune.
+const nouveautes = ['kurt-cobain', 'bob-dylan', 'john-bonham', 'paul-mccartney'];
+const cards = await Promise.all(
+	nouveautes.map(async (modele) => {
+		const lunette = await getLunette(modele, 'rouge', 'jaune');
+		return {
+			image: lunette?.face ?? null,
+			alt: lunette ? `Lunettes ${lunette.nom}` : '',
+			href: `/lunettes/${modele}?monture=rouge&verre=jaune`,
+		};
+	}),
+);
 
 // Les cards sont rendues deux fois : quand la première série a fini de défiler (translateX(-50%)),
 // la seconde est exactement à sa place, et l'animation reprend à zéro sans saut visible.
 // La copie est `inert` : ignorée par les lecteurs d'écran et la navigation au clavier.
 const series = [false, true];
 
-// Cadres de la section Bestsellers (vides pour l'instant) : une entrée = un cadre, dans l'ordre de la grille.
+// Cadres de la section Bestsellers : une entrée = un cadre, dans l'ordre de la grille.
+// modele = slug dans PocketBase, monture / verre = nom du dossier de couleur (bleu, jaune, marron, rouge).
 // Écris toujours la classe complète (bg-…) : Tailwind ne détecte pas une classe construite par morceaux.
-const bestsellers = [
-	{ color: 'bg-yellow' },
-	{ color: 'bg-red' },
-	{ color: 'bg-yellow' },
-	{ color: 'bg-blue' },
-	{ color: 'bg-yellow' },
-	{ color: 'bg-blue' },
-];
+const bestsellers = await Promise.all(
+	[
+		{ color: 'bg-yellow', modele: 'kurt-cobain', monture: 'rouge', verre: 'rouge' },
+		{ color: 'bg-red', modele: 'bob-dylan', monture: 'bleu', verre: 'bleu' },
+		{ color: 'bg-yellow', modele: 'john-bonham', monture: 'marron', verre: 'marron' },
+		{ color: 'bg-blue', modele: 'paul-mccartney', monture: 'jaune', verre: 'jaune' },
+		{ color: 'bg-yellow', modele: 'kurt-cobain', monture: 'bleu', verre: 'bleu' },
+		{ color: 'bg-blue', modele: 'john-bonham', monture: 'rouge', verre: 'rouge' },
+	].map(async (cadre) => ({ ...cadre, lunette: await getLunette(cadre.modele, cadre.monture, cadre.verre) })),
+);
 ---
 
-<BaseLayout title="Accueil">
+<BaseLayout title="Hotel California · Lunettes de soleil">
+	<!-- Titre de la page pour les lecteurs d'écran et les moteurs de recherche (le logo du header le montre déjà) -->
+	<h1 class="sr-only">Hotel California, lunettes de soleil</h1>
 	<section class="w-full overflow-hidden mt-13">
-		<div class="flex w-max animate-marquee motion-reduce:animate-none">
+		<!-- Le défilement se met en pause au survol, pour pouvoir cliquer sur « Découvrir » -->
+		<div class="flex w-max animate-marquee motion-reduce:animate-none hover:[animation-play-state:paused]">
 			{series.map((isCopy) => (
 				<div class="flex gap-[2.88vh] pr-[2.88vh]" inert={isCopy}>
 					{cards.map((card) => (
-						<CarouselCard class="bg-blue" image={card.image} alt={card.alt} />
+						<CarouselCard class="bg-blue" image={card.image} alt={card.alt} href={card.href} />
 					))}
 				</div>
 			))}
 		</div>
 	</section>
 	<section class="w-full overflow-hidden mt-[6.25vh]" data-reveal-section>
-		<div class="relative pr-[3.44vw]" data-reveal="left">
-			<div class="w-full bg-yellow
-            [clip-path:polygon(0_0,90%_0,100%_100%,0_100%)]">
-				<Image src={rockstarImg} alt="Collection Rockstar" format="avif" class="block w-full h-auto" />
-			</div>
-			<!-- Hors de la forme pour ne pas être coupé par le clip-path ; right = padding du conteneur + marge -->
-			<span class="absolute bottom-[4vh] right-[calc(3.44vw+4vh)] z-10 px-[1vh] font-rubik-mono text-blue text-3xl">
-				Rockstar
-			</span>
+		<!-- Image et titre forment un seul lien vers la page de la collection -->
+		<div class="pr-[3.44vw]" data-reveal="left">
+			<a href="/rockstar" class="group relative block focus-visible:outline-4 focus-visible:outline-blue focus-visible:outline-offset-4">
+				<div class="w-full bg-yellow
+	            [clip-path:polygon(0_0,90%_0,100%_100%,0_100%)]">
+					<Image src={rockstarImg} alt="Collection Rockstar" format="avif" class="block w-full h-auto transition duration-500 motion-safe:group-hover:scale-105" />
+				</div>
+				<!-- Hors de la forme pour ne pas être coupé par le clip-path -->
+				<span class="absolute bottom-[4vh] right-[4vh] z-10 px-[1vh] font-rubik-mono text-blue text-3xl transition group-hover:text-red">
+					Rockstar
+				</span>
+			</a>
 		</div>
-		<div class="relative pl-[3.44vw] mt-[8.17vh]" data-reveal="right">
-			<div class="w-full bg-red
-            [clip-path:polygon(10%_0,100%_0,100%_100%,0_100%)]">
-				<Image src={singleImg} alt="Collection Single" format="avif" class="block w-full h-auto" />
-			</div>
-			<!-- Hors de la forme pour ne pas être coupé par le clip-path ; left = padding du conteneur + marge -->
-			<span class="absolute bottom-[4vh] left-[calc(3.44vw+4vh)] z-10 px-[1vh] font-rubik-mono text-yellow text-3xl">
-				Single
-			</span>
+		<div class="pl-[3.44vw] mt-[8.17vh]" data-reveal="right">
+			<a href="/single" class="group relative block focus-visible:outline-4 focus-visible:outline-red focus-visible:outline-offset-4">
+				<div class="w-full bg-red
+	            [clip-path:polygon(10%_0,100%_0,100%_100%,0_100%)]">
+					<Image src={singleImg} alt="Collection Single" format="avif" class="block w-full h-auto transition duration-500 motion-safe:group-hover:scale-105" />
+				</div>
+				<!-- Hors de la forme pour ne pas être coupé par le clip-path -->
+				<span class="absolute bottom-[4vh] left-[4vh] z-10 px-[1vh] font-rubik-mono text-yellow text-3xl transition group-hover:text-blue">
+					Single
+				</span>
+			</a>
 		</div>
 	</section>
-	<section class="mx-0 mt-[7.21vh] mb-0 pt-[3.61vh] bg-brown items-center text-center" data-reveal-section>
+	<section id="bestsellers" class="mx-0 mt-[7.21vh] mb-0 pt-[3.61vh] bg-brown items-center text-center" data-reveal-section>
 		<span class="block px-[1vh] font-rubik-mono text-yellow text-4xl leading-none">Bestsellers</span>
 		<!-- 2 lignes de 3 cadres, 24px d'espace sur l'écran de référence (24/1280 en largeur, 24/832 en hauteur) -->
 		<div class="grid grid-cols-3 gap-x-[1.875vw] gap-y-[2.88vh] px-[2.81vw] pt-[13.22vh] pb-[6.49vh]">
-			{bestsellers.map((cadre) => (
-				<div class:list={['aspect-square', cadre.color]}></div>
+			<!-- Chaque cadre entier mène à la page produit, dans les couleurs affichées -->
+			{bestsellers.map((cadre, i) => (
+				<a
+					href={`/lunettes/${cadre.modele}?monture=${cadre.monture}&verre=${cadre.verre}`}
+					class:list={['group relative block aspect-square overflow-hidden focus-visible:outline-4 focus-visible:outline-yellow focus-visible:outline-offset-4', cadre.color]}
+				>
+					{cadre.lunette && (
+						<>
+							<!-- Les deux vues alternent en boucle (même animation, décalée d'une demi-période pour la vue de face).
+							     Décalage différent pour chaque cadre (style : Tailwind ne détecte pas une classe construite). -->
+							<img
+								src={cadre.lunette.face}
+								alt={`Lunettes ${cadre.lunette.nom}`}
+								loading="lazy"
+								class="absolute inset-0 size-full object-contain animate-swap motion-reduce:animate-none"
+								style={`animation-delay: ${i * -0.8 - 2.5}s`}
+							/>
+							<img
+								src={cadre.lunette.droite}
+								alt=""
+								loading="lazy"
+								class="absolute inset-0 size-full object-contain opacity-0 animate-swap motion-reduce:animate-none"
+								style={`animation-delay: ${i * -0.8}s`}
+							/>
+							<!-- Bandeau foncé qui monte depuis le bas au survol (et quand le lien est sélectionné au clavier) -->
+							<div class="absolute inset-x-0 bottom-0 translate-y-full bg-brown/85 py-[2vh] text-center font-rubik-mono text-yellow transition-transform duration-300 group-hover:translate-y-0 group-focus-visible:translate-y-0 motion-reduce:transition-none">
+								Voir plus
+							</div>
+						</>
+					)}
+				</a>
 			))}
 		</div>
 	</section>
 </BaseLayout>
 
 <script>
-	// Quand une section [data-reveal-section] entre dans l'écran, tous ses éléments [data-reveal]
-	// reçoivent .is-visible, l'un après l'autre (décalage de 0.4s entre chaque, une seule fois).
-	const observer = new IntersectionObserver(
-		(entries) => {
-			for (const entry of entries) {
-				if (entry.isIntersecting) {
-					entry.target.querySelectorAll('[data-reveal]').forEach((el, i) => {
-						el.style.setProperty('--reveal-delay', `${i * 0.4}s`);
-						el.classList.add('is-visible');
-					});
-					observer.unobserve(entry.target);
+	// Navigation sans rechargement (ClientRouter) : relancé à chaque arrivée sur une page.
+	document.addEventListener('astro:page-load', () => {
+		// Quand une section [data-reveal-section] entre dans l'écran, tous ses éléments [data-reveal]
+		// reçoivent .is-visible, l'un après l'autre (décalage de 0.4s entre chaque, une seule fois).
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (entry.isIntersecting) {
+						entry.target.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el, i) => {
+							el.style.setProperty('--reveal-delay', `${i * 0.4}s`);
+							el.classList.add('is-visible');
+						});
+						observer.unobserve(entry.target);
+					}
 				}
-			}
-		},
-		{ threshold: 0.2 },
-	);
+			},
+			{ threshold: 0.2 },
+		);
 
-	document.querySelectorAll('[data-reveal-section]').forEach((section) => observer.observe(section));
+		document.querySelectorAll('[data-reveal-section]').forEach((section) => observer.observe(section));
+	});
 </script>

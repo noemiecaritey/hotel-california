@@ -1,0 +1,56 @@
+---
+import PageTexte from '@/layouts/PageTexte.astro';
+import { LIVRAISON, DELAI_LIVRAISON, TAILLES } from '@/lib/panier';
+import { formatPrixCourt } from '@/lib/format';
+---
+
+<PageTexte titre="Conditions générales" description="Conditions générales de vente d'Hotel California." majLe="9 octobre 2026">
+	<h2>1. Objet</h2>
+	<p>
+		Les présentes conditions générales de vente encadrent les commandes passées sur le site Hotel California. Le site
+		étant fictif, elles sont données à titre d'exemple et n'engagent personne.
+	</p>
+
+	<h2>2. Produits</h2>
+	<p>
+		Les lunettes sont présentées avec leurs couleurs de monture et de verres et leurs tailles ({TAILLES.join(', ')}).
+		Les photos sont aussi fidèles que possible ; de légères différences de teinte peuvent exister selon l'écran.
+	</p>
+
+	<h2>3. Prix</h2>
+	<p>
+		Les prix sont indiqués en euros, toutes taxes comprises. Le prix de chaque modèle est affiché sur sa page. Les frais
+		de livraison ({formatPrixCourt(LIVRAISON)} par commande) sont affichés dans le panier avant le paiement. Le prix appliqué est celui en
+		vigueur au moment de la commande.
+	</p>
+
+	<h2>4. Commande et paiement</h2>
+	<p>
+		La commande est validée après le paiement de son montant total. Aucun moyen de paiement n'est actif sur ce site :
+		le bouton « Payer » ne débite rien.
+	</p>
+
+	<h2>5. Livraison</h2>
+	<p>
+		Les commandes sont livrées sous {DELAI_LIVRAISON} jours environ à l'adresse indiquée. La date prévue est affichée dans le panier.
+		En cas de colis abîmé, il faut le signaler au transporteur à la réception.
+	</p>
+
+	<h2>6. Droit de rétractation</h2>
+	<p>
+		Le client dispose de 14 jours à compter de la réception pour changer d'avis, sans avoir à se justifier. Les
+		lunettes doivent être renvoyées dans leur état d'origine ; le remboursement intervient sous 14 jours après
+		réception du retour.
+	</p>
+
+	<h2>7. Garanties</h2>
+	<p>
+		Les produits bénéficient de la garantie légale de conformité (2 ans) et de la garantie contre les vices cachés.
+	</p>
+
+	<h2>8. Contact et litiges</h2>
+	<p>
+		Pour toute question ou réclamation, écris-nous depuis la page <a href="/contact">Contact</a>. En cas de litige,
+		une solution amiable sera recherchée en priorité.
+	</p>
+</PageTexte>

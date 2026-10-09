@@ -1,0 +1,73 @@
+---
+// Boutons sous une section de page catégorie : « Ajouter au panier » et « Plus de personnalisation ».
+// Ils suivent la variante affichée : celle du dernier panneau dont on a cliqué une bande de couleur
+// (monture de ses photos, verre de la bande), sinon `depart`. Taille par défaut, à changer sur la page produit.
+
+interface Props {
+	slug: string;
+	nom: string;
+	variantes: { monture: string; verre: string; droite: string; prix: number }[];
+	depart: { monture: string; verre: string };
+}
+
+const { slug, nom, variantes, depart } = Astro.props;
+const lien = (c: Props['depart']) => `/lunettes/${slug}?monture=${c.monture}&verre=${c.verre}`;
+
+const bouton =
+	'flex h-[4.38vw] cursor-pointer items-center border-[0.31vw] border-yellow px-[1.56vw] font-satoshi text-[2.58vw] leading-none text-yellow transition hover:bg-yellow';
+---
+
+<div
+	class="mt-[1.64vw] flex justify-center gap-[1.95vw]"
+	data-actions
+	data-slug={slug}
+	data-nom={nom}
+	data-variantes={JSON.stringify(variantes.map(({ monture, verre, droite }) => ({ monture, verre, droite })))}
+	data-prix={variantes[0]?.prix}
+	data-monture={depart.monture}
+	data-verre={depart.verre}
+>
+	<button type="button" class:list={[bouton, 'bg-brown hover:text-brown']} data-ajouter>Ajouter au panier</button>
+	<a href={lien(depart)} class:list={[bouton, 'bg-red hover:text-red']} data-personnaliser>Plus de personnalisation</a>
+</div>
+
+<script>
+	import { ajouter, TAILLE_PAR_DEFAUT } from '@/lib/panier';
+
+	// Navigation sans rechargement (ClientRouter) : relancé à chaque arrivée sur une page.
+	document.addEventListener('astro:page-load', () => {
+		document.querySelectorAll<HTMLElement>('[data-actions]').forEach((actions) => {
+			const section = actions.closest('section')!;
+			const lien = actions.querySelector<HTMLAnchorElement>('[data-personnaliser]')!;
+			const bouton = actions.querySelector<HTMLButtonElement>('[data-ajouter]')!;
+			const variantes: { monture: string; verre: string; droite: string }[] = JSON.parse(actions.dataset.variantes!);
+
+			// Clic sur une bande de couleur de la section : cette variante devient celle des boutons.
+			section.addEventListener('click', (e) => {
+				const bande = (e.target as Element).closest<HTMLElement>('[data-panneau] [data-verre]');
+				const monture = bande?.closest('[data-panneau]')?.querySelector<HTMLElement>('img[data-monture]')?.dataset.monture;
+				if (!bande || !monture) return;
+				actions.dataset.monture = monture;
+				actions.dataset.verre = bande.dataset.verre!;
+				lien.href = `/lunettes/${actions.dataset.slug}?monture=${monture}&verre=${bande.dataset.verre}`;
+			});
+
+			bouton.addEventListener('click', () => {
+				const { monture, verre } = actions.dataset;
+				const v = variantes.find((v) => v.monture === monture && v.verre === verre);
+				if (!v) return;
+				ajouter({
+					slug: actions.dataset.slug!,
+					nom: actions.dataset.nom!,
+					monture: v.monture,
+					verre: v.verre,
+					taille: TAILLE_PAR_DEFAUT,
+					image: v.droite,
+					prix: Number(actions.dataset.prix),
+				});
+				bouton.textContent = 'Ajouté !';
+				setTimeout(() => (bouton.textContent = 'Ajouter au panier'), 1500);
+			});
+		});
+	});
+</script>

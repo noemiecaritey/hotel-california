@@ -1,0 +1,96 @@
+---
+// Panneau de couleur des pages catégorie : photos de lunettes recadrées, et éventuellement
+// des bandes de couleur qui changent le verre de ses photos (script ci-dessous).
+// Positions et tailles en % du panneau (photos) et en vw (bandes), mesurées sur la maquette 1280×832.
+// Si la monture ou le verre affichés ont la couleur du fond, le fond change de couleur (voir fondLibre).
+import { fonds, fondLibre, contourBande } from '@/lib/couleurs';
+
+interface Photo {
+	verres: Record<string, string>; // URL de la photo pour chaque couleur de verre
+	monture: string; // couleur de la monture
+	verre: string; // verre affiché au départ
+	style: string; // left / top / width en % du panneau
+	retourner?: boolean; // vue de gauche : la vue de droite en miroir
+	alt?: string;
+}
+
+interface Bande {
+	verre: string;
+	style: string; // left / width en vw, depuis le bord gauche du panneau
+	contour?: boolean; // force le contour (sinon : règle ci-dessous)
+}
+
+interface Props {
+	class?: string;
+	fond: string;
+	forme?: string; // points du clip-path polygon(), pour les panneaux coupés en diagonale
+	photos?: Photo[];
+	bandes?: Bande[];
+	decor?: string[]; // couleurs du contenu posé sur le fond (bandeau) : le fond de remplacement les évite
+}
+
+const { class: className, fond, forme, photos = [], bandes = [], decor = [] } = Astro.props;
+const fondAffiche = fondLibre(fond, photos.flatMap((p) => [p.monture, p.verre]), decor);
+---
+
+<div class:list={['relative', className]} data-panneau data-fond={fond} data-decor={JSON.stringify(decor)}>
+	<div
+		class:list={['absolute inset-0 overflow-hidden', fondAffiche]}
+		style={forme && `clip-path: polygon(${forme})`}
+		data-calque
+	>
+		{photos.map((photo) => (
+			<img
+				src={photo.verres[photo.verre]}
+				alt={photo.alt ?? ''}
+				loading="lazy"
+				class:list={['absolute max-w-none', photo.retourner && '-scale-x-100']}
+				style={photo.style}
+				data-verres={JSON.stringify(photo.verres)}
+				data-monture={photo.monture}
+			/>
+		))}
+		<slot />
+	</div>
+	{bandes.map((bande) => (
+		<button
+			type="button"
+			class:list={['absolute inset-y-0 cursor-pointer transition-transform motion-safe:hover:translate-y-[-0.5vw]', fonds[bande.verre], contourBande(bande.verre, fondAffiche, bande.contour)]}
+			style={bande.style}
+			aria-label={`Verre ${bande.verre}`}
+			aria-pressed={bande.verre === photos[0]?.verre}
+			data-verre={bande.verre}
+			data-contour={bande.contour}
+		></button>
+	))}
+</div>
+
+<script>
+	import { fonds, fondLibre, contourBande, classesContour } from '@/lib/couleurs';
+
+	// Navigation sans rechargement (ClientRouter) : relancé à chaque arrivée sur une page.
+	document.addEventListener('astro:page-load', () => {
+		// Bandes de couleur : changent le verre des photos de leur panneau, puis le fond si besoin.
+		document.querySelectorAll<HTMLElement>('[data-panneau]').forEach((panneau) => {
+			const calque = panneau.querySelector<HTMLElement>('[data-calque]')!;
+			const photos = panneau.querySelectorAll<HTMLImageElement>('img[data-verres]');
+			const bandes = panneau.querySelectorAll<HTMLButtonElement>('[data-verre]');
+			bandes.forEach((bande) =>
+				bande.addEventListener('click', () => {
+					const verre = bande.dataset.verre!;
+					photos.forEach((img) => (img.src = JSON.parse(img.dataset.verres!)[verre]));
+					const couleurs = [...photos].map((img) => img.dataset.monture!).concat(verre);
+					const fond = fondLibre(panneau.dataset.fond!, couleurs, JSON.parse(panneau.dataset.decor!));
+					calque.classList.remove(...Object.values(fonds));
+					calque.classList.add(fond);
+					bandes.forEach((b) => {
+						const force = b.dataset.contour ? b.dataset.contour === 'true' : undefined;
+						b.classList.remove(...classesContour);
+						b.classList.add(...contourBande(b.dataset.verre!, fond, force));
+					});
+					bandes.forEach((b) => b.setAttribute('aria-pressed', String(b === bande)));
+				}),
+			);
+		});
+	});
+</script>

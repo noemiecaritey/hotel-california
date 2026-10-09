@@ -14,17 +14,37 @@
   --color-red: oklch(60.78% 0.2183 32.12); /* #E83515 rouge-orangé */
   --color-yellow: oklch(92.46% 0.1922 104.11); /* #FCEB18 jaune */
   --color-blue: oklch(69.24% 0.076 222.08); /* #64A7BE bleu */
+  --color-turquoise: oklch(68.82% 0.094 217.41); /* #4CA9C1 bleu vif des pages catégorie et des étoiles du menu */
 
   /* Polices : génèrent les classes font-satoshi, font-dm-sans, font-rubik-mono */
   --font-satoshi: "Satoshi", ui-sans-serif, system-ui, sans-serif;
   --font-rubik-mono: "Rubik Mono One", ui-monospace, monospace;
 
-  /* Animations : génèrent la classe animate-marquee */
+  /* Animations : génèrent les classes animate-marquee, animate-frise et animate-swap */
   --animate-marquee: marquee 40s linear infinite;
+  /* Frises d'étoiles des cards Nouveautés : avance d'un motif (3.71vh) à la vitesse d'avant (18 motifs en 15s) */
+  --animate-frise: frise 0.833s linear infinite;
+  /* Bestsellers : la vue de droite apparaît puis disparaît, par-dessus la vue de face (cycle de 5s) */
+  --animate-swap: swap 5s ease-in-out infinite;
+
+  @keyframes frise {
+    to {
+      mask-position: -3.71vh 0;
+    }
+  }
 
   @keyframes marquee {
     to {
       transform: translateX(-50%);
+    }
+  }
+
+  @keyframes swap {
+    0%, 40%, 100% {
+      opacity: 0;
+    }
+    50%, 90% {
+      opacity: 1;
     }
   }
 }

@@ -1,0 +1,58 @@
+---
+import PageTexte from '@/layouts/PageTexte.astro';
+
+const champ = 'mt-[0.39vw] block w-full border-[0.23vw] border-brown bg-white px-[0.78vw] py-[0.55vw] font-satoshi text-[1.41vw] text-brown outline-none focus:border-red';
+---
+
+<PageTexte titre="Contact" description="Écrire à Hotel California.">
+	<h2>Nous écrire</h2>
+	<p>
+		Une question sur une monture, une taille ou une commande ? Écris-nous à <a href="mailto:bonjour@hotel-california.example">bonjour@hotel-california.example</a>
+		ou utilise le formulaire ci-dessous. Nous répondons du lundi au vendredi, de 10 h à 18 h.
+	</p>
+
+	<!-- Formulaire de démonstration : rien n'est envoyé, le site est fictif -->
+	<form class="mt-[1.56vw] flex flex-col gap-[1.17vw]" data-contact>
+		<label>
+			Nom
+			<input name="nom" required autocomplete="name" class={champ} />
+		</label>
+		<label>
+			Adresse e-mail
+			<input name="email" type="email" required autocomplete="email" class={champ} />
+		</label>
+		<label>
+			Message
+			<textarea name="message" rows="5" required class={champ}></textarea>
+		</label>
+		<button
+			type="submit"
+			class="w-fit cursor-pointer border-[0.31vw] border-yellow bg-red px-[1.56vw] py-[0.78vw] font-rubik-mono text-[1.56vw] leading-none text-yellow transition hover:bg-yellow hover:text-red"
+		>
+			Envoyer
+		</button>
+		<p class="hidden border-[0.31vw] border-yellow bg-brown px-[1.25vw] py-[0.78vw] text-yellow" role="status" data-merci>
+			Merci ! Ton message aurait bien été envoyé… si Hotel California existait.
+		</p>
+	</form>
+
+	<h2>Adresse</h2>
+	<p>
+		Hotel California (boutique fictive)<br />
+		1 rue du Soleil Couchant<br />
+		00000 Nulle-Part
+	</p>
+</PageTexte>
+
+<script>
+	// Navigation sans rechargement (ClientRouter) : relancé à chaque arrivée sur une page. Rien à faire hors du contact.
+	document.addEventListener('astro:page-load', () => {
+		const form = document.querySelector<HTMLFormElement>('[data-contact]');
+		if (!form) return;
+		form.addEventListener('submit', (e) => {
+			e.preventDefault();
+			form.reset();
+			form.querySelector('[data-merci]')!.classList.remove('hidden');
+		});
+	});
+</script>

@@ -3,6 +3,9 @@
 // Avec `autoplay`, la musique essaie de démarrer au chargement. Les navigateurs bloquent le son
 // tant que le visiteur n'a pas interagi avec la page : dans ce cas, elle démarre à sa première
 // interaction (clic, toucher, touche du clavier), sauf s'il a coupé la radio entre-temps.
+// Le choix du visiteur est mémorisé : coupée, la radio reste coupée (même au retour sur le site)
+// jusqu'à ce qu'il la relance. Entre deux pages, le lecteur est conservé (transition:persist dans
+// BaseLayout) et la musique continue ; après un rechargement, elle reprend où elle en était.
 import RadioOn from '@/assets/images/radio-on.svg';
 import RadioOff from '@/assets/images/radio-off.svg';
 
@@ -26,7 +29,7 @@ const notes = [
 ---
 
 <radio-toggle class:list={['inline-block', className]} data-autoplay={autoplay ? '' : undefined}>
-	<button type="button" aria-pressed="false" aria-label="Lancer la musique" class="relative block h-full cursor-pointer">
+	<button type="button" aria-pressed="false" aria-label="Lancer la musique" class="relative block h-full cursor-pointer transition motion-safe:hover:scale-110">
 		<RadioOff class="h-full w-auto" data-radio-off />
 		<RadioOn class="hidden h-full w-auto" data-radio-on />
 		<span class="pointer-events-none absolute left-[15%] top-[20%]" aria-hidden="true">
@@ -53,6 +56,10 @@ const notes = [
 <script>
 	class RadioToggle extends HTMLElement {
 		connectedCallback() {
+			// Avec transition:persist, l'élément est déplacé dans chaque nouvelle page : on ne l'initialise qu'une fois.
+			if (this.hasAttribute('data-ready')) return;
+			this.setAttribute('data-ready', '');
+
 			const button = this.querySelector('button')!;
 			const audio = this.querySelector('audio')!;
 			const on = this.querySelector('[data-radio-on]')!;
@@ -66,11 +73,36 @@ const notes = [
 				off.classList.toggle('hidden', playing);
 			};
 
+			// Le stockage peut être bloqué (navigation privée, cookies refusés) : la radio marche quand même.
+			const lire = (store: Storage, key: string) => {
+				try {
+					return store.getItem(key);
+				} catch {
+					return null;
+				}
+			};
+			const ecrire = (store: Storage, key: string, value: string) => {
+				try {
+					store.setItem(key, value);
+				} catch {}
+			};
+
 			button.addEventListener('click', () => {
 				stopWaiting();
+				ecrire(localStorage, 'radio', audio.paused ? 'on' : 'off');
 				if (audio.paused) audio.play().catch(() => render(false));
 				else audio.pause();
 			});
+
+			// Reprise après un rechargement : on note la position de la musique pendant la lecture et à la coupure
+			// (pas en quittant la page : à ce moment-là, le lecteur peut déjà être remis à zéro).
+			// (appliquée une fois le fichier chargé, sinon le navigateur l'ignore ; il peut l'être déjà, depuis le cache)
+			const position = Number(lire(sessionStorage, 'radio-position')) || 0;
+			if (audio.readyState > 0) audio.currentTime = position;
+			else audio.addEventListener('loadedmetadata', () => (audio.currentTime = position), { once: true });
+			const noterPosition = () => ecrire(sessionStorage, 'radio-position', String(audio.currentTime));
+			audio.addEventListener('timeupdate', noterPosition);
+			audio.addEventListener('pause', noterPosition);
 			audio.addEventListener('play', () => render(true));
 			audio.addEventListener('pause', () => render(false));
 
@@ -86,7 +118,7 @@ const notes = [
 				interactions.forEach((type) => document.removeEventListener(type, startOnInteraction));
 			};
 
-			if (this.hasAttribute('data-autoplay')) {
+			if (this.hasAttribute('data-autoplay') && lire(localStorage, 'radio') !== 'off') {
 				audio.play().catch(() => {
 					interactions.forEach((type) => document.addEventListener(type, startOnInteraction));
 				});
