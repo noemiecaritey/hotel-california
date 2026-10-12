@@ -22,6 +22,10 @@ import path from "node:path";
 import readline from "node:readline/promises";
 
 // ── Configuration ────────────────────────────────────────────
+// CHANGEMENT : avant, le script écrivait dans le PocketBase de l'ordinateur (http://127.0.0.1:8090).
+// Il écrit maintenant par défaut dans le PocketBase EN LIGNE, celui que le site affiche.
+// Pour revenir au PocketBase de l'ordinateur, lance-le avec PB_URL=http://127.0.0.1:8090 devant la commande.
+// Le .replace retire un éventuel "/" final, pour ne pas obtenir "//api" dans les adresses.
 const PB_URL = (process.env.PB_URL || "https://pb-california.noemiecaritey.fr").replace(/\/+$/, "");
 
 // Si la détection automatique des couleurs échoue, remplis ceci
@@ -93,7 +97,9 @@ if (!email || !password) {
 await pb.collection("_superusers").authWithPassword(email, password);
 console.log(`🔑 Connecté à ${PB_URL}`);
 
-// Import réel vers le PocketBase en ligne : on demande confirmation (c'est lui que le site affiche).
+// NOUVEAU : import réel vers le PocketBase en ligne, on demande confirmation (c'est lui que le site affiche).
+// Une erreur ici se verrait tout de suite sur le site. Avec --dry, ou vers le PocketBase de l'ordinateur
+// (127.0.0.1 / localhost), pas de question : rien n'est écrit en ligne.
 if (!DRY && !/127\.0\.0\.1|localhost/.test(PB_URL)) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const ok = await rl.question(`⚠️  Écrire dans le PocketBase EN LIGNE (${PB_URL}) ? Tape "oui" pour continuer : `);
@@ -162,7 +168,10 @@ for (const [slug, categorie] of modeles) {
 // ── 5. Variantes ─────────────────────────────────────────────
 const existantes = await pb.collection("variantes").getFullList();
 
-// Fiches vides (sans couleur) : supprimées
+// Fiches vides (sans couleur) : supprimées.
+// ATTENTION : maintenant que le script vise le PocketBase en ligne, cette suppression s'y applique aussi.
+// Elle ne touche que les variantes sans couleur de monture ni de verre ; les autres ne sont jamais supprimées,
+// même si leur modèle n'est pas dans le dossier importé (on peut donc importer un seul modèle à la fois).
 for (const v of existantes.filter((v) => !one(v.couleur_monture) && !one(v.couleur_verre))) {
   console.log(`🗑️  variantes : suppression de la fiche vide ${v.id}`);
   if (!DRY) await pb.collection("variantes").delete(v.id);
@@ -183,6 +192,7 @@ for (const v of variantes) {
     fd.append(`img_${pos}`, new Blob([fs.readFileSync(file)], { type: "image/avif" }), nom);
   }
 
+  // Variante déjà en ligne (même modèle, mêmes couleurs) : ses photos sont remplacées ; sinon elle est créée.
   const deja = existantes.find(
     (e) => one(e.modele) === modele && one(e.couleur_monture) === monture && one(e.couleur_verre) === verre
   );
