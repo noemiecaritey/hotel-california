@@ -1,12 +1,18 @@
 // ─────────────────────────────────────────────────────────────
 //  Import des lunettes dans PocketBase
 //
+//  Envoie les photos d'un dossier dans le PocketBase en ligne (https://pb-california.noemiecaritey.fr).
+//  Le dossier peut ne contenir que les nouveautés (ex. un seul modèle) : les fiches déjà en ligne
+//  ne sont pas touchées, une variante qui existe déjà est mise à jour avec ses nouvelles photos.
+//
 //  Usage :
-//    node import-lunettes.mjs ./pb-california --dry   (test : n'écrit rien)
-//    node import-lunettes.mjs ./pb-california         (import réel)
+//    node import-lunettes.mjs ./mes-photos --dry   (test : n'écrit rien)
+//    node import-lunettes.mjs ./mes-photos         (import réel, demande confirmation)
+//    PB_URL=http://127.0.0.1:8090 node import-lunettes.mjs ./mes-photos   (vers le PocketBase de l'ordinateur)
 //
 //  Arborescence attendue :
-//    pb-california/<categorie>/<modele>/<monture>/<verre>/{face,droite,gauche}.avif
+//    mes-photos/<categorie>/<modele>/<monture>/<verre>/{face,droite,gauche}.avif
+//    ex : mes-photos/rockstar/jimi-hendrix/rouge/jaune/face.avif
 //    (le verre de la même couleur que la monture finit par "_", ex : bleu_)
 // ─────────────────────────────────────────────────────────────
 
@@ -16,7 +22,7 @@ import path from "node:path";
 import readline from "node:readline/promises";
 
 // ── Configuration ────────────────────────────────────────────
-const PB_URL = process.env.PB_URL || "http://127.0.0.1:8090";
+const PB_URL = (process.env.PB_URL || "https://pb-california.noemiecaritey.fr").replace(/\/+$/, "");
 
 // Si la détection automatique des couleurs échoue, remplis ceci
 // avec les id de ta collection "color", ex : { bleu: "1piufftvl4qkti9", ... }
@@ -29,7 +35,7 @@ const DRY = args.includes("--dry");
 const ROOT = args.find((a) => !a.startsWith("--"));
 
 if (!ROOT || !fs.existsSync(ROOT)) {
-  console.error("❌ Indique le chemin du dossier : node import-lunettes.mjs ./pb-california");
+  console.error("❌ Indique le chemin du dossier : node import-lunettes.mjs ./mes-photos");
   process.exit(1);
 }
 
@@ -86,6 +92,17 @@ if (!email || !password) {
 }
 await pb.collection("_superusers").authWithPassword(email, password);
 console.log(`🔑 Connecté à ${PB_URL}`);
+
+// Import réel vers le PocketBase en ligne : on demande confirmation (c'est lui que le site affiche).
+if (!DRY && !/127\.0\.0\.1|localhost/.test(PB_URL)) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const ok = await rl.question(`⚠️  Écrire dans le PocketBase EN LIGNE (${PB_URL}) ? Tape "oui" pour continuer : `);
+  rl.close();
+  if (ok.trim().toLowerCase() !== "oui") {
+    console.log("Import annulé, rien n'a été écrit.");
+    process.exit(0);
+  }
+}
 
 // ── 3. Correspondance couleurs (dossier -> id de "color") ────
 // PocketBase renomme les fichiers envoyés : "bleu-monture.avif" devient
