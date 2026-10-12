@@ -6,13 +6,15 @@ import rockstarImg from '@/assets/images/rockstar-img.avif';
 import singleImg from '@/assets/images/single-img.avif';
 import { getLunette } from '@/lib/pocketbase';
 
-// Nouveautés : une entrée = une card, avec la vue de face du modèle (slug PocketBase) en monture rouge / verre jaune.
+// Nouveautés : une entrée = une card, vue de face du modèle (slug PocketBase) en monture rouge / verre jaune,
+// et vue de droite au survol.
 const nouveautes = ['kurt-cobain', 'bob-dylan', 'john-bonham', 'paul-mccartney'];
 const cards = await Promise.all(
 	nouveautes.map(async (modele) => {
 		const lunette = await getLunette(modele, 'rouge', 'jaune');
 		return {
 			image: lunette?.face ?? null,
+			imageSurvol: lunette?.droite ?? null,
 			alt: lunette ? `Lunettes ${lunette.nom}` : '',
 			href: `/lunettes/${modele}?monture=rouge&verre=jaune`,
 		};
@@ -21,7 +23,8 @@ const cards = await Promise.all(
 
 // Les cards sont rendues deux fois : quand la première série a fini de défiler (translateX(-50%)),
 // la seconde est exactement à sa place, et l'animation reprend à zéro sans saut visible.
-// La copie est `inert` : ignorée par les lecteurs d'écran et la navigation au clavier.
+// La copie est cachée aux lecteurs d'écran (aria-hidden) et sautée au clavier (copie : liens en tabindex -1), mais
+// garde la souris : survol et clic marchent sur toutes les cards (inert les bloquerait).
 const series = [false, true];
 
 // Cadres de la section Bestsellers : une entrée = un cadre, dans l'ordre de la grille.
@@ -46,9 +49,9 @@ const bestsellers = await Promise.all(
 		<!-- Le défilement se met en pause au survol, pour pouvoir cliquer sur « Découvrir » -->
 		<div class="flex w-max animate-marquee motion-reduce:animate-none hover:[animation-play-state:paused]">
 			{series.map((isCopy) => (
-				<div class="flex gap-[2.88vh] pr-[2.88vh]" inert={isCopy}>
+				<div class="flex gap-[2.88vh] pr-[2.88vh]" aria-hidden={isCopy ? 'true' : undefined}>
 					{cards.map((card) => (
-						<CarouselCard class="bg-blue" image={card.image} alt={card.alt} href={card.href} />
+						<CarouselCard class="bg-blue" copie={isCopy} image={card.image} imageSurvol={card.imageSurvol} alt={card.alt} href={card.href} />
 					))}
 				</div>
 			))}
@@ -63,7 +66,7 @@ const bestsellers = await Promise.all(
 					<Image src={rockstarImg} alt="Collection Rockstar" format="avif" class="block w-full h-auto transition duration-500 motion-safe:group-hover:scale-105" />
 				</div>
 				<!-- Hors de la forme pour ne pas être coupé par le clip-path -->
-				<span class="absolute bottom-[4vh] right-[4vh] z-10 px-[1vh] font-rubik-mono text-blue text-3xl transition group-hover:text-red">
+				<span class="absolute bottom-[4vh] right-[4vh] z-10 px-[1vh] font-rubik-mono text-blue text-3xl transition group-hover:text-yellow">
 					Rockstar
 				</span>
 			</a>
@@ -76,7 +79,7 @@ const bestsellers = await Promise.all(
 				</div>
 				<!-- Hors de la forme pour ne pas être coupé par le clip-path -->
 				<span class="absolute bottom-[4vh] left-[4vh] z-10 px-[1vh] font-rubik-mono text-yellow text-3xl transition group-hover:text-blue">
-					Single
+					Popstar
 				</span>
 			</a>
 		</div>

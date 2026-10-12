@@ -3,6 +3,8 @@
 // des bandes de couleur qui changent le verre de ses photos (script ci-dessous).
 // Positions et tailles en % du panneau (photos) et en vw (bandes), mesurées sur la maquette 1280×832.
 // Si la monture ou le verre affichés ont la couleur du fond, le fond change de couleur (voir fondLibre).
+// Avec `lien` (page produit du modèle) : le panneau est cliquable, entouré d'un contour au survol, et ouvre la page
+// produit dans la monture de ses photos et le verre choisi. Un clic sur une bande change seulement le verre.
 import { fonds, fondLibre, contourBande } from '@/lib/couleurs';
 
 interface Photo {
@@ -27,13 +29,30 @@ interface Props {
 	photos?: Photo[];
 	bandes?: Bande[];
 	decor?: string[]; // couleurs du contenu posé sur le fond (bandeau) : le fond de remplacement les évite
+	lien?: string; // page produit (/lunettes/slug), sans les couleurs
+	nom?: string; // nom du modèle, pour le lien lu par les lecteurs d'écran
 }
 
-const { class: className, fond, forme, photos = [], bandes = [], decor = [] } = Astro.props;
+const { class: className, fond, forme, photos = [], bandes = [], decor = [], lien, nom } = Astro.props;
 const fondAffiche = fondLibre(fond, photos.flatMap((p) => [p.monture, p.verre]), decor);
 ---
 
-<div class:list={['relative', className]} data-panneau data-fond={fond} data-decor={JSON.stringify(decor)}>
+<div
+	class:list={[
+		'relative',
+		lien &&
+			'cursor-pointer outline-[0.51vw] outline-offset-0 outline-transparent transition-[outline-color] duration-300 hover:outline-brown has-[a:focus-visible]:outline-brown',
+		className,
+	]}
+	data-panneau
+	data-fond={fond}
+	data-decor={JSON.stringify(decor)}
+>
+	{lien && (
+		<a href={`${lien}?monture=${photos[0]?.monture}&verre=${photos[0]?.verre}`} class="sr-only" data-lien>
+			Personnaliser les lunettes {nom}
+		</a>
+	)}
 	<div
 		class:list={['absolute inset-0 overflow-hidden', fondAffiche]}
 		style={forme && `clip-path: polygon(${forme})`}
@@ -66,6 +85,7 @@ const fondAffiche = fondLibre(fond, photos.flatMap((p) => [p.monture, p.verre]),
 </div>
 
 <script>
+	import { navigate } from 'astro:transitions/client';
 	import { fonds, fondLibre, contourBande, classesContour } from '@/lib/couleurs';
 
 	// Navigation sans rechargement (ClientRouter) : relancé à chaque arrivée sur une page.
@@ -75,6 +95,15 @@ const fondAffiche = fondLibre(fond, photos.flatMap((p) => [p.monture, p.verre]),
 			const calque = panneau.querySelector<HTMLElement>('[data-calque]')!;
 			const photos = panneau.querySelectorAll<HTMLImageElement>('img[data-verres]');
 			const bandes = panneau.querySelectorAll<HTMLButtonElement>('[data-verre]');
+			const lien = panneau.querySelector<HTMLAnchorElement>('[data-lien]');
+
+			// Panneau cliquable : ailleurs que sur une bande, on ouvre la page produit.
+			if (lien) {
+				panneau.addEventListener('click', (e) => {
+					if (!(e.target as Element).closest('[data-verre], a')) navigate(lien.href);
+				});
+			}
+
 			bandes.forEach((bande) =>
 				bande.addEventListener('click', () => {
 					const verre = bande.dataset.verre!;
@@ -89,6 +118,11 @@ const fondAffiche = fondLibre(fond, photos.flatMap((p) => [p.monture, p.verre]),
 						b.classList.add(...contourBande(b.dataset.verre!, fond, force));
 					});
 					bandes.forEach((b) => b.setAttribute('aria-pressed', String(b === bande)));
+					if (lien) {
+						const url = new URL(lien.href);
+						url.searchParams.set('verre', verre);
+						lien.href = url.pathname + url.search;
+					}
 				}),
 			);
 		});

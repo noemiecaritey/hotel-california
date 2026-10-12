@@ -1,0 +1,93 @@
+---
+// Écran de chargement : la voiture animée (public/images/chargement.webp, tirée de src/assets/images/chargement.gif
+// en plus léger : 317 Ko au lieu de 2,7 Mo, 1920 px de large), sur tout l'écran, avec un texte au-dessus de la voiture.
+// L'animation remplit l'écran (object-cover) : sur un écran large, le haut et le bas, vides, sont rognés.
+// - Arrivée sur le site : visible dès le premier affichage, il disparaît quand la page, ses polices et ses images
+//   visibles sont chargées.
+// - Changement de page (navigation sans rechargement) : il revient dès le clic et repart quand les images visibles
+//   de la nouvelle page sont chargées.
+// Dans les deux cas, il reste affiché au moins 2 s (DUREE_MIN), même si tout est déjà chargé.
+// Les images plus bas dans la page (chargement différé, loading="lazy") ne le retiennent pas. Au bout de 10 s, il
+// disparaît quoi qu'il arrive, pour ne jamais bloquer le site.
+
+// Phrase tirée au hasard à chaque apparition de l'écran (jamais deux fois la même d'affilée).
+const phrases = [
+	'Le groupe se forme',
+	'Accordage des guitares',
+	'Balance en cours',
+	'Le concert va commencer',
+	'Les roadies installent la scène',
+];
+---
+
+<div
+	transition:persist="chargement"
+	class="fixed inset-0 z-100 flex items-center justify-center bg-[#f8f8f8] transition-opacity duration-500"
+	role="status"
+	data-chargement
+>
+	<img src="/images/chargement.webp" alt="" fetchpriority="high" class="absolute inset-0 size-full object-cover" />
+	<!-- Texte dans le ciel vide, au-dessus de la voiture -->
+	<p class="absolute inset-x-0 top-[22%] text-center font-rubik-mono text-[3.5vw] leading-none text-red">
+		<span data-phrase data-phrases={JSON.stringify(phrases)}>{phrases[0]}</span><span class="animate-pulse">…</span>
+	</p>
+	<!-- Tirage immédiat, pendant la lecture de la page : la première phrase affichée est déjà la bonne -->
+	<script is:inline>
+		(() => {
+			const el = document.querySelector('[data-phrase]');
+			const phrases = JSON.parse(el.dataset.phrases);
+			el.textContent = phrases[Math.floor(Math.random() * phrases.length)];
+		})();
+	</script>
+</div>
+
+<script>
+	const ecran = () => document.querySelector<HTMLElement>('[data-chargement]');
+	const montrer = () => {
+		// Nouvelle phrase, différente de celle d'avant
+		const el = document.querySelector<HTMLElement>('[data-phrase]');
+		if (el) {
+			const autres = (JSON.parse(el.dataset.phrases!) as string[]).filter((p) => p !== el.textContent);
+			el.textContent = autres[Math.floor(Math.random() * autres.length)];
+		}
+		ecran()?.classList.remove('opacity-0', 'pointer-events-none');
+	};
+	const cacher = () => ecran()?.classList.add('opacity-0', 'pointer-events-none');
+
+	// Une image compte si elle n'est pas encore chargée et qu'elle est chargée tout de suite : pas en différé,
+	// ou en différé mais déjà dans l'écran.
+	const visible = (img: HTMLImageElement) => {
+		const r = img.getBoundingClientRect();
+		// Dans l'écran en hauteur ET en largeur : les images du carousel hors de l'écran sur les côtés ne sont pas
+		// chargées par le navigateur, il ne faut pas les attendre.
+		return r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
+	};
+	const imagesChargees = () =>
+		Promise.all(
+			[...document.images]
+				.filter((img) => !img.complete && (img.loading !== 'lazy' || visible(img)))
+				.map((img) => new Promise((fin) => {
+					img.addEventListener('load', fin, { once: true });
+					img.addEventListener('error', fin, { once: true });
+				})),
+		);
+	const pageChargee = () =>
+		document.readyState === 'complete' ? Promise.resolve() : new Promise((fin) => addEventListener('load', fin, { once: true }));
+	const auPlus = (ms: number) => new Promise((fin) => setTimeout(fin, ms));
+
+	const DUREE_MIN = 2000; // ms d'affichage minimum
+
+	// Moment où l'écran est apparu : à l'ouverture du site (0 = début du chargement), puis à chaque changement de page.
+	let debut = 0;
+	document.addEventListener('astro:before-preparation', () => {
+		debut = performance.now();
+		montrer();
+	});
+
+	// Arrivée sur le site comme changement de page : astro:page-load est déclenché les deux fois.
+	document.addEventListener('astro:page-load', async () => {
+		const charge = Promise.race([Promise.all([pageChargee(), imagesChargees(), document.fonts.ready]), auPlus(10000)]);
+		await Promise.all([charge, auPlus(debut + DUREE_MIN - performance.now())]);
+		cacher();
+	});
+</script>

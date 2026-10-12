@@ -4,7 +4,7 @@
 // Payer (87.1 unités), tient dans la hauteur de l'écran avec un article ; elle est centrée et garde les proportions.
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { LIVRAISON, DELAI_LIVRAISON } from '@/lib/panier';
-import { getCadrage, getNomsCouleurs, getSlugs, getModele, styleVueDroite } from '@/lib/pocketbase';
+import { PB_URL, getCadrage, getNomsCouleurs, getSlugs, getModele, styleVueDroite } from '@/lib/pocketbase';
 
 // Frais de livraison et délai : voir src/lib/panier.ts (repris dans les conditions générales).
 const livraison = LIVRAISON;
@@ -30,7 +30,7 @@ const nav = [
 
 <BaseLayout title="Panier · Hotel California" hero="panier" nav={nav}>
 	<section class="mx-auto w-[calc(var(--u)*100)]" style="--u: min(1vw, 1.148vh)" data-page-panier data-livraison={livraison} data-delai={delaiJours}>
-		<script type="application/json" data-donnees set:html={JSON.stringify({ noms, cadrages })} />
+		<script type="application/json" data-donnees set:html={JSON.stringify({ noms, cadrages, pb: PB_URL })} />
 
 		<h1 class="ml-[calc(var(--u)*1.88)] mt-[calc(var(--u)*2.89)] font-rubik-mono text-[calc(var(--u)*2.81)] leading-none">Panier</h1>
 
@@ -108,7 +108,7 @@ const nav = [
 	document.addEventListener('astro:page-load', () => {
 		const page = document.querySelector<HTMLElement>('[data-page-panier]');
 		if (!page) return;
-		const { noms, cadrages } = JSON.parse(page.querySelector('[data-donnees]')!.textContent!);
+		const { noms, cadrages, pb } = JSON.parse(page.querySelector('[data-donnees]')!.textContent!);
 		const liste = page.querySelector<HTMLElement>('[data-liste]')!;
 		const modele = page.querySelector<HTMLTemplateElement>('[data-modele]')!;
 		const livraison = Number(page.dataset.livraison);
@@ -130,7 +130,8 @@ const nav = [
 					const carte = modele.content.cloneNode(true) as DocumentFragment;
 					champ(carte, 'nom').textContent = article.nom;
 					const image = champ(carte, 'image') as HTMLImageElement;
-					image.src = article.image;
+					// Photo enregistrée avec l'adresse du PocketBase de l'époque : on garde son chemin, avec l'adresse actuelle
+					image.src = article.image.includes('/api/files/') ? pb + article.image.slice(article.image.indexOf('/api/files/')) : article.image;
 					image.setAttribute('style', cadrages[article.slug] ?? 'left:0;top:0;width:100%');
 					champ(carte, 'photo').classList.add(article.verre === 'jaune' ? 'bg-red' : 'bg-yellow');
 					champ(carte, 'monture').textContent = nomCouleur('monture', article.monture);

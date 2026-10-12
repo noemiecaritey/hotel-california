@@ -1,9 +1,11 @@
 // Accès en lecture au catalogue PocketBase (collections lunettes, color, variantes).
-// Les données sont récupérées au moment du rendu de la page : PocketBase doit tourner (pocketbase serve).
+// Les données sont récupérées au moment du rendu de la page, et les photos sont chargées par le navigateur des
+// visiteurs depuis la même adresse : le PocketBase publié en ligne. Pour travailler sur le PocketBase de ton
+// ordinateur, mets PB_URL=http://127.0.0.1:8090 dans un fichier .env (voir .env.example).
 import fs from 'node:fs';
 import sharp from 'sharp';
 
-export const PB_URL = import.meta.env.PB_URL ?? 'http://127.0.0.1:8090';
+export const PB_URL = (import.meta.env.PB_URL ?? 'https://pb-california.noemiecaritey.fr').replace(/\/+$/, '');
 
 // Prix d'un modèle sans prix dans PocketBase (champ vide ou à 0), en centimes.
 const PRIX_PAR_DEFAUT = 5500;

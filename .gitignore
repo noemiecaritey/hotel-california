@@ -24,6 +24,7 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
-# fichiers temporaires de la base PocketBase (SQLite)
-pocketbase/pb_data/*.db-shm
-pocketbase/pb_data/*.db-wal
+# PocketBase local : base, photos et exécutable restent sur l'ordinateur (le site lit le PocketBase en ligne).
+# Seules les migrations (structure des collections) restent dans le dépôt.
+pocketbase/*
+!pocketbase/pb_migrations/

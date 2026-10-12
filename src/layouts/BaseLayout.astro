@@ -4,6 +4,7 @@ import { ClientRouter } from 'astro:transitions';
 import Header from '@/components/layout/Header.astro';
 import Footer from '@/components/layout/Footer.astro';
 import RadioToggle from '@/components/ui/RadioToggle.astro';
+import Chargement from '@/components/ui/Chargement.astro';
 
 interface Props {
 	title: string;
@@ -37,10 +38,14 @@ const {
 			rel="stylesheet"
 		/>
 		<title>{title}</title>
+		<!-- Écran de chargement : son animation passe avant tout le reste ; sans JavaScript, il ne s'affiche pas -->
+		<link rel="preload" as="image" href="/images/chargement.webp" fetchpriority="high" />
+		<noscript><style>[data-chargement] { display: none; }</style></noscript>
 		<!-- Navigation sans rechargement : la radio (transition:persist) continue de jouer d'une page à l'autre -->
 		<ClientRouter />
 	</head>
 	<body class="flex min-h-screen flex-col font-sans text-brown antialiased">
+		<Chargement />
 		<Header hero={hero} nav={nav}><slot name="hero" slot="hero" /></Header>
 		<main class="flex-1">
 			<slot />

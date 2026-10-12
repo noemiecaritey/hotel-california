@@ -97,7 +97,13 @@ const page = hero && heros[hero];
 				)}
 				<a
 					href={lien.href}
-					class:list={['hover:text-yellow font-rubik-mono transition duration-300 ease-out motion-safe:hover:-translate-y-0.5 text-2xl', lien.actif ? 'text-yellow' : 'text-white']}
+					class:list={[
+						'hover:text-yellow font-rubik-mono transition duration-300 ease-out motion-safe:hover:-translate-y-0.5 text-2xl whitespace-nowrap',
+						// Liens des côtés de même largeur (calés sur le bord) : celui du milieu est exactement centré
+						i === 0 && 'w-[15vw] text-left',
+						i === nav.length - 1 && 'w-[15vw] text-right',
+						lien.actif ? 'text-yellow' : 'text-white',
+					]}
 					aria-current={lien.actif ? 'page' : undefined}
 				>{lien.label}</a>
 			</>

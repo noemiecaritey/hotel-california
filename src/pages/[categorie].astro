@@ -5,7 +5,6 @@
 // sur tous les écrans : sinon les photos, cadrées en % de leur panneau, seraient coupées ou mal placées.
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Panneau from '@/components/sections/Panneau.astro';
-import ActionsModele from '@/components/sections/ActionsModele.astro';
 import Star from '@/assets/images/star.svg';
 import { getModeles } from '@/lib/pocketbase';
 
@@ -26,6 +25,8 @@ const photo = (modele: typeof a, vue: 'face' | 'droite', monture: string) => ({
 });
 
 const etoiles = [1, 2, 3];
+const styleTitre = 'text-center font-rubik-mono text-[2.81vw] leading-none';
+// Les panneaux à bandes de couleur sont cliquables et mènent à la page produit (voir Panneau).
 const single = select === 'popstar';
 
 // Ce qui change d'une page à l'autre (maquettes Rockstar et Popstar) : la couleur des panneaux et leurs photos
@@ -79,41 +80,43 @@ const marge = single ? 'mx-[4.84vw] font-rubik-mono text-[2.5vw] leading-none' :
 	<div class="overflow-x-clip pb-[7.03vw]">
 		{a && (
 			<section>
-				<h2 class="mt-[5vw] text-center font-rubik-mono text-[2.81vw] leading-none">{a.nom}</h2>
+				<h2 class:list={['mt-[5vw]', styleTitre]}>{a.nom}</h2>
 
-				<!-- Panneau du haut coupé en diagonale : partie jaune à gauche, partie brune à droite -->
-				{/* (couleurs des deux parties : voir panneaux.aGauche / aDroite, elles changent sur Single) */}
-				<div class="relative ml-[1.95vw] mt-[3.2vw] h-[27.19vw] w-[95.39vw]">
-					<Panneau class="absolute! inset-0" forme="0 0, 42.18% 0, 58.56% 100%, 0 100%" {...panneaux.aGauche} />
-					<Panneau class="absolute! inset-0" forme="44.14% 0, 100% 0, 100% 100%, 60.61% 100%" {...panneaux.aDroite} />
-				</div>
-
-				<Panneau
-					class="ml-[1.95vw] mt-[1.64vw] h-[27.19vw] w-[95.39vw]"
-					{...panneaux.aBas}
-					decor={['jaune', 'bleu']}
-					bandes={[
-						{ verre: 'jaune', style: 'left:81.48vw;width:2.66vw' },
-						{ verre: 'bleu', style: 'left:86.02vw;width:3.44vw' },
-						{ verre: 'rouge', style: 'left:90.55vw;width:4.14vw' },
-						{ verre: 'marron', style: 'left:95.23vw;width:4.14vw' },
-					]}
-				>
-					<div class={single ? 'absolute left-[21.95vw] top-[25.63vw] flex -translate-y-1/2 items-center' : 'absolute left-[23.44vw] top-[2.97vw] flex -translate-y-1/2 items-center'}>
-						<div class={ecart}>{etoiles.map(() => <Star class={etoile} />)}</div>
-						<span class:list={[marge, 'text-yellow']}>Bestseller</span>
-						<div class={ecart}>{etoiles.map(() => <Star class={etoile} />)}</div>
+				<div class="ml-[1.95vw] mt-[3.2vw] w-[95.39vw]">
+					<!-- Panneau du haut coupé en diagonale : partie jaune à gauche, partie brune à droite -->
+					{/* (couleurs des deux parties : voir panneaux.aGauche / aDroite, elles changent sur Single) */}
+					<div class="relative h-[27.19vw]">
+						<Panneau class="absolute! inset-0" forme="0 0, 42.18% 0, 58.56% 100%, 0 100%" {...panneaux.aGauche} />
+						<Panneau class="absolute! inset-0" forme="44.14% 0, 100% 0, 100% 100%, 60.61% 100%" {...panneaux.aDroite} />
 					</div>
-				</Panneau>
 
-				<!-- Les boutons suivent le panneau aux bandes de couleur -->
-				<ActionsModele slug={a.slug} nom={a.nom} variantes={a.variantes} depart={panneaux.aBas.photos[0]} />
+					<!-- Bandes à l'intérieur du panneau : la dernière finit sur son bord droit (sur la maquette, elle débordait) -->
+					<Panneau
+						class="mt-[1.64vw] h-[27.19vw]"
+						{...panneaux.aBas}
+						lien={`/lunettes/${a.slug}`}
+						nom={a.nom}
+						decor={['jaune', 'bleu']}
+						bandes={[
+							{ verre: 'jaune', style: 'left:77.5vw;width:2.66vw' },
+							{ verre: 'bleu', style: 'left:82.04vw;width:3.44vw' },
+							{ verre: 'rouge', style: 'left:86.57vw;width:4.14vw' },
+							{ verre: 'marron', style: 'left:91.25vw;width:4.14vw' },
+						]}
+					>
+						<div class={single ? 'absolute left-[21.95vw] top-[25.63vw] flex -translate-y-1/2 items-center' : 'absolute left-[23.44vw] top-[2.97vw] flex -translate-y-1/2 items-center'}>
+							<div class={ecart}>{etoiles.map(() => <Star class={etoile} />)}</div>
+							<span class:list={[marge, 'text-yellow']}>Bestseller</span>
+							<div class={ecart}>{etoiles.map(() => <Star class={etoile} />)}</div>
+						</div>
+					</Panneau>
+				</div>
 			</section>
 		)}
 
 		{b && (
 			<section>
-				<h2 class="mt-[5.55vw] text-center font-rubik-mono text-[2.81vw] leading-none">{b.nom}</h2>
+				<h2 class:list={['mt-[5.55vw]', styleTitre]}>{b.nom}</h2>
 
 				<div class="mt-[2.89vw] ml-[1.95vw] flex gap-[1.41vw]">
 					<Panneau
@@ -122,16 +125,19 @@ const marge = single ? 'mx-[4.84vw] font-rubik-mono text-[2.5vw] leading-none' :
 					/>
 					<!-- Colonne de droite : 4px plus bas que le panneau de gauche, comme sur la maquette -->
 					<div class="mt-[0.31vw] flex flex-col gap-[2.03vw]">
+						<!-- Bandes à l'intérieur du panneau : la dernière finit sur son bord droit (sur la maquette, elle débordait) -->
 						<Panneau
 							class="h-[24.61vw] w-[63.36vw]"
 							forme="0 0, 71% 0, 98.4% 100%, 0 100%"
 							{...panneaux.bHaut}
+							lien={`/lunettes/${b.slug}`}
+							nom={b.nom}
 							decor={single ? ['rouge', 'bleu'] : []}
 							bandes={[
-								{ verre: 'marron', style: 'left:48.2vw;width:2.66vw' },
-								{ verre: 'rouge', style: 'left:52.73vw;width:3.44vw' },
-								{ verre: 'bleu', style: 'left:57.27vw;width:4.14vw' },
-								{ verre: 'jaune', style: 'left:61.95vw;width:4.14vw' },
+								{ verre: 'marron', style: 'left:45.47vw;width:2.66vw' },
+								{ verre: 'rouge', style: 'left:50vw;width:3.44vw' },
+								{ verre: 'bleu', style: 'left:54.54vw;width:4.14vw' },
+								{ verre: 'jaune', style: 'left:59.22vw;width:4.14vw' },
 							]}
 						>
 							{single && (
@@ -146,6 +152,8 @@ const marge = single ? 'mx-[4.84vw] font-rubik-mono text-[2.5vw] leading-none' :
 							class="h-[24.92vw] w-[63.36vw]"
 							forme="27.4% 0, 100% 0, 100% 100%, 3% 100%"
 							{...panneaux.bBas}
+							lien={`/lunettes/${b.slug}`}
+							nom={b.nom}
 							bandes={[
 								{ verre: 'jaune', style: 'left:0;width:4.3vw' },
 								{ verre: 'marron', style: 'left:4.92vw;width:4.38vw' },
@@ -156,9 +164,6 @@ const marge = single ? 'mx-[4.84vw] font-rubik-mono text-[2.5vw] leading-none' :
 						/>
 					</div>
 				</div>
-
-				<!-- Les boutons suivent le dernier panneau dont on a cliqué une bande (au départ, celui du haut) -->
-				<ActionsModele slug={b.slug} nom={b.nom} variantes={b.variantes} depart={panneaux.bHaut.photos[0]} />
 			</section>
 		)}
 	</div>
