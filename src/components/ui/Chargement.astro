@@ -7,8 +7,10 @@
 // - Changement de page (navigation sans rechargement) : il revient dès le clic et repart quand les images visibles
 //   de la nouvelle page sont chargées.
 // Dans les deux cas, il reste affiché au moins 2 s (DUREE_MIN), même si tout est déjà chargé.
-// Les images plus bas dans la page (chargement différé, loading="lazy") ne le retiennent pas. Au bout de 10 s, il
+// Les images plus bas dans la page (chargement différé, loading="lazy") ne le retiennent pas. Au bout de 20 s, il
 // disparaît quoi qu'il arrive, pour ne jamais bloquer le site.
+// Il revérifie tant que de nouvelles images apparaissent : les scripts des pages changent des photos juste après
+// l'arrivée (couleur choisie, cartes du panier…), et elles doivent être chargées et décodées avant qu'il parte.
 
 // Phrase tirée au hasard à chaque apparition de l'écran (jamais deux fois la même d'affilée).
 const phrases = [
@@ -62,15 +64,28 @@ const phrases = [
 		// chargées par le navigateur, il ne faut pas les attendre.
 		return r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
 	};
-	const imagesChargees = () =>
-		Promise.all(
-			[...document.images]
-				.filter((img) => !img.complete && (img.loading !== 'lazy' || visible(img)))
-				.map((img) => new Promise((fin) => {
-					img.addEventListener('load', fin, { once: true });
-					img.addEventListener('error', fin, { once: true });
-				})),
-		);
+	// Une image est prête quand elle est chargée ET décodée (prête à être peinte, sans apparaître par morceaux).
+	const prete = (img: HTMLImageElement) =>
+		img.complete ? img.decode().catch(() => {}) : new Promise<void>((fin) => {
+			const suite = () => img.decode().catch(() => {}).then(fin);
+			img.addEventListener('load', suite, { once: true });
+			img.addEventListener('error', () => fin(), { once: true });
+		});
+	const aAttendre = () =>
+		[...document.images].filter((img) => img.currentSrc || img.src).filter((img) => img.loading !== 'lazy' || visible(img));
+	const prochaineImage = () => new Promise((fin) => requestAnimationFrame(() => requestAnimationFrame(fin)));
+
+	// Attend toutes les images visibles, puis recommence tant que les scripts de la page en ajoutent ou en changent.
+	async function imagesChargees() {
+		const vues = new Set<string>();
+		for (;;) {
+			await prochaineImage(); // laisse les scripts de la page changer leurs photos
+			const nouvelles = aAttendre().filter((img) => !vues.has(img.currentSrc || img.src));
+			if (!nouvelles.length && aAttendre().every((img) => img.complete)) return;
+			nouvelles.forEach((img) => vues.add(img.currentSrc || img.src));
+			await Promise.all(aAttendre().map(prete));
+		}
+	}
 	const pageChargee = () =>
 		document.readyState === 'complete' ? Promise.resolve() : new Promise((fin) => addEventListener('load', fin, { once: true }));
 	const auPlus = (ms: number) => new Promise((fin) => setTimeout(fin, ms));
@@ -86,7 +101,10 @@ const phrases = [
 
 	// Arrivée sur le site comme changement de page : astro:page-load est déclenché les deux fois.
 	document.addEventListener('astro:page-load', async () => {
-		const charge = Promise.race([Promise.all([pageChargee(), imagesChargees(), document.fonts.ready]), auPlus(10000)]);
+		const charge = Promise.race([
+			Promise.all([pageChargee(), document.fonts.ready]).then(imagesChargees),
+			auPlus(20000),
+		]);
 		await Promise.all([charge, auPlus(debut + DUREE_MIN - performance.now())]);
 		cacher();
 	});
