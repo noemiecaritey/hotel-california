@@ -28,7 +28,7 @@ const notes = [
 ];
 ---
 
-<radio-toggle class:list={['inline-block', className]} data-autoplay={autoplay ? '' : undefined}>
+<radio-toggle class:list={['inline-block', className]} data-src={src} data-autoplay={autoplay ? '' : undefined}>
 	<button type="button" aria-pressed="false" aria-label="Lancer la musique" class="relative block h-full cursor-pointer transition motion-safe:hover:scale-110">
 		<RadioOff class="h-full w-auto" data-radio-off />
 		<RadioOn class="hidden h-full w-auto" data-radio-on />
@@ -50,79 +50,93 @@ const notes = [
 			))}
 		</span>
 	</button>
-	<audio src={src} loop preload={autoplay ? 'auto' : 'none'}></audio>
 </radio-toggle>
 
 <script>
+	// UN SEUL lecteur audio pour tout le site, créé une fois et gardé hors de la page (window).
+	// Avant, chaque <radio-toggle> avait son propre <audio> : à chaque changement de page, Astro insère un instant
+	// la radio de la nouvelle page avant de remettre l'ancienne (transition:persist), ce qui lançait un nouveau
+	// lecteur. Sur Safari, les anciens continuaient de jouer : les musiques s'empilaient. Le bouton ne fait
+	// maintenant que piloter ce lecteur unique.
+	type Fenetre = typeof window & { radioHotelCalifornia?: HTMLAudioElement };
+
+	// Le stockage peut être bloqué (navigation privée, cookies refusés) : la radio marche quand même.
+	const lire = (store: Storage, key: string) => {
+		try {
+			return store.getItem(key);
+		} catch {
+			return null;
+		}
+	};
+	const ecrire = (store: Storage, key: string, value: string) => {
+		try {
+			store.setItem(key, value);
+		} catch {}
+	};
+
+	// Met à jour toutes les radios de la page (icône allumée / éteinte, notes de musique, texte pour les lecteurs d'écran).
+	const afficher = (playing: boolean) => {
+		document.querySelectorAll<HTMLElement>('radio-toggle').forEach((radio) => {
+			const button = radio.querySelector('button')!;
+			radio.toggleAttribute('data-playing', playing);
+			button.setAttribute('aria-pressed', String(playing));
+			button.setAttribute('aria-label', playing ? 'Couper la musique' : 'Lancer la musique');
+			radio.querySelector('[data-radio-on]')!.classList.toggle('hidden', !playing);
+			radio.querySelector('[data-radio-off]')!.classList.toggle('hidden', playing);
+		});
+	};
+
+	// Démarrage automatique : si le navigateur refuse (pas encore d'interaction), on attend la première interaction
+	// ailleurs que sur la radio (un clic sur la radio est géré par son bouton).
+	const interactions = ['pointerdown', 'keydown'] as const;
+	const demarrerAuPremierGeste = (event: Event) => {
+		if ((event.target as Element).closest?.('radio-toggle')) return;
+		arreterAttente();
+		lecteur()?.play().catch(() => afficher(false));
+	};
+	const arreterAttente = () => interactions.forEach((type) => document.removeEventListener(type, demarrerAuPremierGeste));
+
+	const lecteur = () => (window as Fenetre).radioHotelCalifornia;
+
+	// Création du lecteur unique, la première fois qu'une radio apparaît sur le site.
+	function creerLecteur(src: string, autoplay: boolean) {
+		const audio = new Audio(src);
+		audio.loop = true;
+		audio.preload = autoplay ? 'auto' : 'none';
+		(window as Fenetre).radioHotelCalifornia = audio;
+
+		// Reprise après un rechargement : on note la position pendant la lecture et à la coupure
+		// (appliquée une fois le fichier chargé, sinon le navigateur l'ignore).
+		const position = Number(lire(sessionStorage, 'radio-position')) || 0;
+		audio.addEventListener('loadedmetadata', () => (audio.currentTime = position), { once: true });
+		const noterPosition = () => ecrire(sessionStorage, 'radio-position', String(audio.currentTime));
+		audio.addEventListener('timeupdate', noterPosition);
+		audio.addEventListener('pause', noterPosition);
+		audio.addEventListener('play', () => afficher(true));
+		audio.addEventListener('pause', () => afficher(false));
+
+		// Coupée la dernière fois : elle reste coupée jusqu'à ce que le visiteur la relance.
+		if (autoplay && lire(localStorage, 'radio') !== 'off') {
+			audio.play().catch(() => interactions.forEach((type) => document.addEventListener(type, demarrerAuPremierGeste)));
+		}
+	}
+
 	class RadioToggle extends HTMLElement {
 		connectedCallback() {
-			// Avec transition:persist, l'élément est déplacé dans chaque nouvelle page : on ne l'initialise qu'une fois.
+			// Avec transition:persist, la même radio est déplacée dans chaque nouvelle page : on ne l'initialise qu'une fois.
 			if (this.hasAttribute('data-ready')) return;
 			this.setAttribute('data-ready', '');
 
-			const button = this.querySelector('button')!;
-			const audio = this.querySelector('audio')!;
-			const on = this.querySelector('[data-radio-on]')!;
-			const off = this.querySelector('[data-radio-off]')!;
+			if (!lecteur()) creerLecteur(this.dataset.src!, this.hasAttribute('data-autoplay'));
+			const audio = lecteur()!;
+			afficher(!audio.paused);
 
-			const render = (playing: boolean) => {
-				this.toggleAttribute('data-playing', playing);
-				button.setAttribute('aria-pressed', String(playing));
-				button.setAttribute('aria-label', playing ? 'Couper la musique' : 'Lancer la musique');
-				on.classList.toggle('hidden', !playing);
-				off.classList.toggle('hidden', playing);
-			};
-
-			// Le stockage peut être bloqué (navigation privée, cookies refusés) : la radio marche quand même.
-			const lire = (store: Storage, key: string) => {
-				try {
-					return store.getItem(key);
-				} catch {
-					return null;
-				}
-			};
-			const ecrire = (store: Storage, key: string, value: string) => {
-				try {
-					store.setItem(key, value);
-				} catch {}
-			};
-
-			button.addEventListener('click', () => {
-				stopWaiting();
+			this.querySelector('button')!.addEventListener('click', () => {
+				arreterAttente();
 				ecrire(localStorage, 'radio', audio.paused ? 'on' : 'off');
-				if (audio.paused) audio.play().catch(() => render(false));
+				if (audio.paused) audio.play().catch(() => afficher(false));
 				else audio.pause();
 			});
-
-			// Reprise après un rechargement : on note la position de la musique pendant la lecture et à la coupure
-			// (pas en quittant la page : à ce moment-là, le lecteur peut déjà être remis à zéro).
-			// (appliquée une fois le fichier chargé, sinon le navigateur l'ignore ; il peut l'être déjà, depuis le cache)
-			const position = Number(lire(sessionStorage, 'radio-position')) || 0;
-			if (audio.readyState > 0) audio.currentTime = position;
-			else audio.addEventListener('loadedmetadata', () => (audio.currentTime = position), { once: true });
-			const noterPosition = () => ecrire(sessionStorage, 'radio-position', String(audio.currentTime));
-			audio.addEventListener('timeupdate', noterPosition);
-			audio.addEventListener('pause', noterPosition);
-			audio.addEventListener('play', () => render(true));
-			audio.addEventListener('pause', () => render(false));
-
-			// Démarrage automatique : si le navigateur refuse, on attend la première interaction
-			// ailleurs que sur la radio (un clic sur la radio est déjà géré juste au-dessus).
-			const interactions = ['pointerdown', 'keydown'] as const;
-			const startOnInteraction = (event: Event) => {
-				if (this.contains(event.target as Node)) return;
-				stopWaiting();
-				audio.play().catch(() => render(false));
-			};
-			const stopWaiting = () => {
-				interactions.forEach((type) => document.removeEventListener(type, startOnInteraction));
-			};
-
-			if (this.hasAttribute('data-autoplay') && lire(localStorage, 'radio') !== 'off') {
-				audio.play().catch(() => {
-					interactions.forEach((type) => document.addEventListener(type, startOnInteraction));
-				});
-			}
 		}
 	}
 

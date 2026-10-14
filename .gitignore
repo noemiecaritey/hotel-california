@@ -28,3 +28,6 @@ pnpm-debug.log*
 # Seules les migrations (structure des collections) restent dans le dépôt.
 pocketbase/*
 !pocketbase/pb_migrations/
+
+# Photos sources pour import-lunettes.mjs : gardées sur l'ordinateur, hors du dépôt
+pb-california/
