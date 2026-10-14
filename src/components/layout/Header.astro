@@ -6,6 +6,8 @@ import imgHeader from '@/assets/images/img-header.avif';
 import panierHeader from '@/assets/images/panier-header.png';
 import Logo from '@/assets/images/logo-header.svg';
 import Star from '@/assets/images/star.svg';
+// INTERRUPTEUR : PETIT_HERO_PRODUIT se change dans src/lib/reglages.ts (pas ici)
+import { PETIT_HERO_PRODUIT } from '@/lib/reglages';
 // Icône panier en image (panier-icon.svg contient une photo de 5 Mo, qu'Astro recopierait dans chaque page)
 import panierIcon from '@/assets/images/panier-icon.webp';
 
@@ -43,11 +45,19 @@ const heros = {
 	panier: { image: panierHeader, fond: 'bg-turquoise', decalage: '', cadrage: 'object-cover' }, // ciel transparent dans l'image
 };
 const page = hero && heros[hero];
+
+// Hauteur du hero : la même partout. Essai (src/lib/reglages.ts, PETIT_HERO_PRODUIT) : sur la page produit, un hero
+// plus bas (20vh) pour que le hero et la personnalisation tiennent ensemble dans l'écran.
+// Le logo chevauche toujours le bas du hero de 5vh.
+const petitHero = PETIT_HERO_PRODUIT && hero === 'produit';
 ---
 
 <header class="w-full relative m-0">
 	<!-- Même hauteur de hero sur toutes les pages -->
-	<div class:list={['relative m-0 w-full h-[25vh] md:h-[35vh] overflow-hidden', page ? page.fond : 'bg-blue']} data-hero-fond={page?.fond}>
+	<div
+		class:list={['relative m-0 w-full overflow-hidden', petitHero ? 'h-[20vh]' : 'h-[25vh] md:h-[35vh]', page ? page.fond : 'bg-blue']}
+		data-hero-fond={page?.fond}
+	>
 		<!-- Accueil : cadrage de la maquette, image 1.375× plus haute que le bandeau, remontée de 10.9% et décalée de 6.25% vers la droite.
 		     Pages catégorie : l'image entière, à la hauteur du hero (cadrage de la maquette), centrée et calée en bas.
 		     Page produit : son image arrive par le slot "hero". -->
@@ -69,7 +79,11 @@ const page = hero && heros[hero];
 	<div class="w-full h-[4.09vh] bg-red mt-2">
 	</div>
 	<!-- Logo : ramène à l'accueil -->
-	<a href="/" class="absolute z-10 inset-x-0 top-[30vh] mx-auto block w-fit transition motion-safe:hover:scale-105" aria-label="Hotel California, accueil">
+	<a
+		href="/"
+		class:list={['absolute z-10 inset-x-0 mx-auto block w-fit transition motion-safe:hover:scale-105', petitHero ? 'top-[15vh]' : 'top-[30vh]']}
+		aria-label="Hotel California, accueil"
+	>
 		<Logo class="h-[17.67vh] w-auto" />
 	</a>
 	<!-- Panier toujours visible, en haut à droite de l'écran : centré dans la hauteur du menu, qui reste lui aussi

@@ -1,12 +1,17 @@
 ---
 // Page produit : une page par modèle (/lunettes/kurt-cobain…), générée à partir de PocketBase.
 // Les couleurs choisies sont dans l'adresse (?monture=rouge&verre=jaune) : un lien peut ouvrir une variante précise.
-// Mesures : maquette 1280×832. La section produit utilise l'unité --u = min(1vw, 1.55vh) : 1vw sur l'écran de la maquette,
-// moins sur un écran plus large que haut, pour que toute la section tienne dans l'écran.
+// Mesures : maquette 1280×832, dans l'unité --u (voir la section) :
+// - habituellement, min(1vw, 1.55vh) : 1vw sur l'écran de la maquette, moins sur un écran plus large que haut,
+//   pour que la section tienne dans l'écran ;
+// - essai PETIT_HERO_PRODUIT (src/lib/reglages.ts) : 1vw au plus, et moins si besoin pour que la section
+//   (62,4 unités de haut) tienne sous le header (hero de 20vh + bandes + menu = 37,18vh + 40px) ; elle est centrée.
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Star from '@/assets/images/star.svg';
-import { getCadrage, getModele, getSlugs, styleVueDroite } from '@/lib/pocketbase';
+import { getCadrage, getModele, getSlugs, styleVueDroite, styleVueGauche } from '@/lib/pocketbase';
 import { formatPrixCourt } from '@/lib/format';
+// INTERRUPTEUR : PETIT_HERO_PRODUIT se change dans src/lib/reglages.ts (pas ici)
+import { PETIT_HERO_PRODUIT } from '@/lib/reglages';
 import { TAILLES, TAILLE_PAR_DEFAUT } from '@/lib/panier';
 import { fondLibre } from '@/lib/couleurs';
 
@@ -37,14 +42,27 @@ const groupes = [
 ];
 
 // Cadrage des photos d'après la place réelle des lunettes dans chaque photo (les marges changent d'un modèle à l'autre).
-const [cFace, cDroite] = await Promise.all([getCadrage(depart.face), getCadrage(depart.droite)]);
+const [cFace, cDroite, cGauche] = await Promise.all([
+	getCadrage(depart.face),
+	getCadrage(depart.droite),
+	getCadrage(depart.gauche),
+]);
 
-// Hero : la monture de 4.84vw à 95vw, son haut à 0.63vw du haut du hero (maquette).
+// Hero habituel : la monture de 4.84vw à 95vw, son haut à 0.63vw du haut du hero (maquette).
 const largeurHero = 90.16 / (cFace.x1 - cFace.x0);
-const styleHero = `left:${4.84 - cFace.x0 * largeurHero}vw;top:${0.63 - cFace.y0 * largeurHero * cFace.ratio}vw;width:${largeurHero}vw`;
+const styleHeroNormal = `left:${4.84 - cFace.x0 * largeurHero}vw;top:${0.63 - cFace.y0 * largeurHero * cFace.ratio}vw;width:${largeurHero}vw`;
+
+// Essai PETIT_HERO_PRODUIT (hero de 20vh, voir Header) : la monture est centrée, son haut à 2,5 % du hero, et on en
+// voit les 70 % du haut, comme sur la maquette (le bas est caché par les bandes). Tailles en vh, d'après le hero.
+const HERO = 20; // vh
+const cadreH = HERO / 0.7; // hauteur de la monture
+const cadreW = (cadreH * (cFace.x1 - cFace.x0)) / ((cFace.y1 - cFace.y0) * cFace.ratio); // sa largeur
+const imageW = cadreW / (cFace.x1 - cFace.x0); // largeur de la photo entière
+const stylePetitHero = `left:calc(50vw - ${(cadreW / 2 + cFace.x0 * imageW).toFixed(2)}vh);top:${(HERO * 0.025 - cFace.y0 * imageW * cFace.ratio).toFixed(2)}vh;width:${imageW.toFixed(2)}vh`;
+const styleHero = PETIT_HERO_PRODUIT ? stylePetitHero : styleHeroNormal;
 
 // Grand panneau (733×606 px sur la maquette), cadrage en % du panneau. Les flèches font défiler les vues :
-// vue de droite (voir styleVueDroite) ; vue de face sur 90% de la largeur, centrée.
+// vue de droite (voir styleVueDroite), vue de face sur 90% de la largeur, centrée, puis vue de gauche (son miroir).
 const panneau = { w: 733, h: 606 };
 const pct = (v: number, total: number) => `${((v / total) * 100).toFixed(2)}%`;
 const faceW = (0.9 * panneau.w) / (cFace.x1 - cFace.x0);
@@ -57,6 +75,10 @@ const vues = [
 	{
 		id: 'face',
 		style: `left:${pct(0.05 * panneau.w - cFace.x0 * faceW, panneau.w)};top:${pct(panneau.h / 2 - ((cFace.y0 + cFace.y1) / 2) * faceH, panneau.h)};width:${pct(faceW, panneau.w)}`,
+	},
+	{
+		id: 'gauche',
+		style: styleVueGauche(cGauche),
 	},
 ] as const;
 
@@ -89,7 +111,11 @@ const fondHero = fondLibre('bg-brown', [depart.monture, depart.verre]);
 		data-fond-depart={fondHero}
 	/>
 
-	<section class="pb-[calc(var(--u)*3.28)]" style="--u: min(1vw, 1.55vh)" data-produit>
+	<section
+		class:list={['pb-[calc(var(--u)*3.28)]', PETIT_HERO_PRODUIT && 'mx-auto w-[calc(var(--u)*100)]']}
+		style={PETIT_HERO_PRODUIT ? '--u: min(1vw, calc((62.82vh - 40px) / 62.4))' : '--u: min(1vw, 1.55vh)'}
+		data-produit
+	>
 		<!-- Variantes du modèle, lues par le script ci-dessous -->
 		<script type="application/json" data-variantes set:html={JSON.stringify(variantes)} />
 
@@ -175,9 +201,10 @@ const fondHero = fondLibre('bg-brown', [depart.monture, depart.verre]);
 				<div class="relative mt-[calc(var(--u)*2.19)] h-[calc(var(--u)*8.83)] bg-turquoise pl-[calc(var(--u)*1.25)] pt-[calc(var(--u)*0.86)]">
 					<p class="font-satoshi text-[calc(var(--u)*1.875)] leading-none">Montant à payer</p>
 					<p class="mt-[calc(var(--u)*1.09)] font-rubik-mono text-[calc(var(--u)*2.5)] leading-none">{prixAffiche}</p>
+					<!-- Bouton brun « Ajouter au panier », qui devient rouge « Voir le panier » une fois l'article ajouté (data-ajoute) -->
 					<button
 						type="button"
-						class="absolute right-[calc(var(--u)*1.48)] top-[calc(var(--u)*3.05)] h-[calc(var(--u)*4.38)] w-[calc(var(--u)*21.56)] cursor-pointer border-[calc(var(--u)*0.31)] border-yellow bg-brown font-satoshi text-[calc(var(--u)*2.58)] leading-none text-yellow transition hover:bg-yellow hover:text-brown"
+						class="absolute right-[calc(var(--u)*1.48)] top-[calc(var(--u)*3.05)] h-[calc(var(--u)*4.38)] w-[calc(var(--u)*21.56)] cursor-pointer border-[calc(var(--u)*0.31)] border-yellow bg-brown font-satoshi text-[calc(var(--u)*2.58)] leading-none text-yellow transition hover:bg-yellow hover:text-brown data-ajoute:bg-red data-ajoute:hover:bg-yellow data-ajoute:hover:text-red"
 						data-ajouter
 						data-slug={slug}
 						data-nom={nom}
@@ -189,15 +216,39 @@ const fondHero = fondLibre('bg-brown', [depart.monture, depart.verre]);
 			</div>
 		</div>
 	</section>
+
+	<!-- Lightbox « Ajouté au panier » : s'ouvre à l'ajout, fait défiler les vues de gauche, de face et de droite de la
+	     paire (comme si elle tournait), puis se referme toute seule. Un clic ou Échap la ferme plus tôt.
+	     Son fond est celui du grand panneau (rouge, ou la couleur de remplacement si les lunettes sont rouges). -->
+	<div
+		class="invisible fixed inset-0 z-90 flex items-center justify-center bg-brown/80 opacity-0 transition-[opacity,visibility] duration-300 data-ouverte:visible data-ouverte:opacity-100"
+		role="status"
+		aria-live="polite"
+		data-lightbox
+	>
+		<div class="relative aspect-733/606 w-[min(60vw,85vh)] overflow-hidden border-[0.31vw] border-yellow bg-red" data-lightbox-fond>
+			<p class="absolute inset-x-0 top-[6%] z-10 text-center font-rubik-mono text-[min(2.5vw,4vh)] leading-none text-yellow">
+				Ajouté au panier !
+			</p>
+			{['gauche', 'face', 'droite'].map(() => (
+				<img
+					alt=""
+					class="absolute inset-0 size-full object-contain p-[6%] pt-[14%] opacity-0 transition-opacity duration-200 data-montree:opacity-100"
+					data-lightbox-vue
+				/>
+			))}
+		</div>
+	</div>
 </BaseLayout>
 
 <script>
 	import { fondLibre, fonds } from '@/lib/couleurs';
+	import { navigate } from 'astro:transitions/client';
 	import { ajouter } from '@/lib/panier';
 
 	// Navigation sans rechargement (ClientRouter) : relancé à chaque arrivée sur une page. Rien à faire hors de la page produit.
 	document.addEventListener('astro:page-load', () => {
-		type Lunette = { monture: string; verre: string; face: string; droite: string };
+		type Lunette = { monture: string; verre: string; face: string; droite: string; gauche: string };
 
 		const page = document.querySelector<HTMLElement>('[data-produit]');
 		if (!page) return;
@@ -209,7 +260,7 @@ const fondHero = fondLibre('bg-brown', [depart.monture, depart.verre]);
 		const pastilles = page.querySelectorAll<HTMLButtonElement>('[data-couleur]');
 		const tailles = page.querySelectorAll<HTMLButtonElement>('[data-taille]');
 
-		const vues: { id: 'face' | 'droite'; style: string }[] = JSON.parse(panneau.dataset.vues!);
+		const vues: { id: 'face' | 'droite' | 'gauche'; style: string }[] = JSON.parse(panneau.dataset.vues!);
 		let vue = 0;
 
 		// Couleurs de départ : celles de l'adresse, sinon celles affichées.
@@ -238,6 +289,7 @@ const fondHero = fondLibre('bg-brown', [depart.monture, depart.verre]);
 			image.src = v[vues[vue].id];
 			image.setAttribute('style', vues[vue].style);
 			hero.src = v.face;
+			[v.gauche, v.face, v.droite].forEach((src) => (new Image().src = src));
 			changerFond(panneau, fondLibre('bg-red', [v.monture, v.verre], ['jaune']));
 			changerFond(heroFond, fondLibre('bg-brown', [v.monture, v.verre]));
 			pastilles.forEach((b) =>
@@ -250,6 +302,7 @@ const fondHero = fondLibre('bg-brown', [depart.monture, depart.verre]);
 			b.addEventListener('click', () => {
 				choix[b.dataset.type as 'monture' | 'verre'] = b.dataset.couleur!;
 				afficher();
+				remettreAjouter();
 			}),
 		);
 		page.querySelectorAll<HTMLButtonElement>('[data-fleche]').forEach((b) =>
@@ -259,12 +312,55 @@ const fondHero = fondLibre('bg-brown', [depart.monture, depart.verre]);
 			}),
 		);
 		tailles.forEach((b) =>
-			b.addEventListener('click', () => tailles.forEach((t) => t.setAttribute('aria-pressed', String(t === b)))),
+			b.addEventListener('click', () => {
+				tailles.forEach((t) => t.setAttribute('aria-pressed', String(t === b)));
+				remettreAjouter();
+			}),
 		);
 
+		// Lightbox « Ajouté au panier » : gauche → face → droite, 0,7 s chacune, puis fermeture à 2,8 s.
+		// Animations réduites (réglage du système) : la vue de face seule, fermeture à 1,5 s.
+		const lightbox = document.querySelector<HTMLElement>('[data-lightbox]')!;
+		const fondLightbox = lightbox.querySelector<HTMLElement>('[data-lightbox-fond]')!;
+		const vuesLightbox = lightbox.querySelectorAll<HTMLImageElement>('[data-lightbox-vue]');
+		const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
+		let minuteurs: ReturnType<typeof setTimeout>[] = [];
+		const montrerVue = (k: number) => vuesLightbox.forEach((img, j) => img.toggleAttribute('data-montree', j === k));
+		function fermerLightbox() {
+			minuteurs.forEach(clearTimeout);
+			minuteurs = [];
+			lightbox.removeAttribute('data-ouverte');
+		}
+		function ouvrirLightbox(v: Lunette) {
+			fermerLightbox();
+			changerFond(fondLightbox, fondLibre('bg-red', [v.monture, v.verre], ['jaune']));
+			[v.gauche, v.face, v.droite].forEach((src, k) => (vuesLightbox[k].src = src));
+			lightbox.setAttribute('data-ouverte', '');
+			if (reduit) {
+				montrerVue(1);
+				minuteurs.push(setTimeout(fermerLightbox, 1500));
+				return;
+			}
+			montrerVue(0);
+			minuteurs.push(setTimeout(() => montrerVue(1), 700), setTimeout(() => montrerVue(2), 1400), setTimeout(fermerLightbox, 2800));
+		}
+		lightbox.addEventListener('click', fermerLightbox);
+		document.addEventListener('keydown', (e) => {
+			if (e.key === 'Escape' && lightbox.isConnected) fermerLightbox();
+		});
+
 		// Ajouter au panier : la variante affichée (choix est toujours une combinaison qui existe), la taille choisie.
+		// Une fois ajoutée, le bouton devient « Voir le panier » et mène au panier. Si on change de couleur ou de taille,
+		// il redevient « Ajouter au panier » pour pouvoir ajouter cette autre paire.
 		const bouton = page.querySelector<HTMLButtonElement>('[data-ajouter]')!;
+		let ajoutee = false;
+		function remettreAjouter() {
+			ajoutee = false;
+			bouton.textContent = 'Ajouter au panier';
+			bouton.removeAttribute('data-ajoute');
+		}
 		bouton.addEventListener('click', () => {
+			if (ajoutee) return navigate('/panier');
 			const v = variantes.find((v) => v.monture === choix.monture && v.verre === choix.verre)!;
 			ajouter({
 				slug: bouton.dataset.slug!,
@@ -275,9 +371,10 @@ const fondHero = fondLibre('bg-brown', [depart.monture, depart.verre]);
 				image: v.droite, // vue de droite, comme sur la maquette du panier
 				prix: Number(bouton.dataset.prix),
 			});
-			// Confirmation pendant 1,5 s
-			bouton.textContent = 'Ajouté !';
-			setTimeout(() => (bouton.textContent = 'Ajouter au panier'), 1500);
+			ajoutee = true;
+			bouton.textContent = 'Voir le panier';
+			bouton.setAttribute('data-ajoute', '');
+			ouvrirLightbox(v);
 		});
 		afficher();
 	});

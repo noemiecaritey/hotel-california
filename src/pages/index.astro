@@ -96,22 +96,22 @@ const bestsellers = await Promise.all(
 				>
 					{cadre.lunette && (
 						<>
-							<!-- Les deux vues alternent en boucle (même animation, décalée d'une demi-période pour la vue de face).
-							     Décalage différent pour chaque cadre (style : Tailwind ne détecte pas une classe construite). -->
-							<img
-								src={cadre.lunette.face}
-								alt={`Lunettes ${cadre.lunette.nom}`}
-								loading="lazy"
-								class="absolute inset-0 size-full object-contain animate-swap motion-reduce:animate-none"
-								style={`animation-delay: ${i * -0.8 - 2.5}s`}
-							/>
-							<img
-								src={cadre.lunette.droite}
-								alt=""
-								loading="lazy"
-								class="absolute inset-0 size-full object-contain opacity-0 animate-swap motion-reduce:animate-none"
-								style={`animation-delay: ${i * -0.8}s`}
-							/>
+							<!-- Les trois vues (face, droite, gauche) passent l'une après l'autre en boucle : même animation,
+							     décalée d'un tiers de période (2,5 s) pour chacune. Décalage différent pour chaque cadre
+							     (style : Tailwind ne détecte pas une classe construite). Sans animation : la vue de face. -->
+							{[
+								{ src: cadre.lunette.face, alt: `Lunettes ${cadre.lunette.nom}`, decalage: 0 },
+								{ src: cadre.lunette.droite, alt: '', decalage: -5 },
+								{ src: cadre.lunette.gauche, alt: '', decalage: -2.5 },
+							].map((vue, k) => (
+								<img
+									src={vue.src}
+									alt={vue.alt}
+									loading="lazy"
+									class:list={['absolute inset-0 size-full object-contain animate-vues motion-reduce:animate-none', k > 0 && 'opacity-0 motion-reduce:hidden']}
+									style={`animation-delay: ${i * -0.8 + vue.decalage}s`}
+								/>
+							))}
 							<!-- Bandeau foncé qui monte depuis le bas au survol (et quand le lien est sélectionné au clavier) -->
 							<div class="absolute inset-x-0 bottom-0 translate-y-full bg-brown/85 py-[2vh] text-center font-rubik-mono text-yellow transition-transform duration-300 group-hover:translate-y-0 group-focus-visible:translate-y-0 motion-reduce:transition-none">
 								Voir plus

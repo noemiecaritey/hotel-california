@@ -12,7 +12,6 @@ interface Photo {
 	monture: string; // couleur de la monture
 	verre: string; // verre affiché au départ
 	style: string; // left / top / width en % du panneau
-	retourner?: boolean; // vue de gauche : la vue de droite en miroir
 	alt?: string;
 }
 
@@ -63,7 +62,7 @@ const fondAffiche = fondLibre(fond, photos.flatMap((p) => [p.monture, p.verre]),
 				src={photo.verres[photo.verre]}
 				alt={photo.alt ?? ''}
 				loading="lazy"
-				class:list={['absolute max-w-none', photo.retourner && '-scale-x-100']}
+				class="absolute max-w-none"
 				style={photo.style}
 				data-verres={JSON.stringify(photo.verres)}
 				data-monture={photo.monture}

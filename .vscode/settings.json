@@ -1,3 +1,59 @@
 {
-  "files.autoSave": "afterDelay"
+  "files.autoSave": "afterDelay",
+  "better-comments.tags": [
+    {
+      "tag": "INTERRUPTEUR",
+      "color": "#FF4FA3",
+      "backgroundColor": "#FF4FA322",
+      "bold": true,
+      "italic": false,
+      "strikethrough": false,
+      "underline": false
+    },
+    {
+      "tag": "!",
+      "color": "#FF2D00",
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false,
+      "strikethrough": false,
+      "underline": false
+    },
+    {
+      "tag": "?",
+      "color": "#3498DB",
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false,
+      "strikethrough": false,
+      "underline": false
+    },
+    {
+      "tag": "//",
+      "color": "#474747",
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false,
+      "strikethrough": true,
+      "underline": false
+    },
+    {
+      "tag": "todo",
+      "color": "#FF8C00",
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false,
+      "strikethrough": false,
+      "underline": false
+    },
+    {
+      "tag": "*",
+      "color": "#98C379",
+      "backgroundColor": "transparent",
+      "bold": false,
+      "italic": false,
+      "strikethrough": false,
+      "underline": false
+    }
+  ]
 }

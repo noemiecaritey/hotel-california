@@ -23,6 +23,7 @@ interface Variante {
 	collectionId: string;
 	img_face: string;
 	img_droite: string;
+	img_gauche: string;
 	expand?: {
 		modele?: { slug: string; nom: string; select: string; prix?: number };
 		couleur_monture?: Color;
@@ -38,6 +39,7 @@ export interface Lunette {
 	verre: string;
 	face: string;
 	droite: string;
+	gauche: string;
 	prix: number; // en centimes (le champ prix de PocketBase est en euros)
 }
 
@@ -72,6 +74,8 @@ function toLunette(v: Variante): Lunette {
 		verre: colorName(v.expand?.couleur_verre),
 		face: fileUrl(v, v.img_face),
 		droite: fileUrl(v, v.img_droite || v.img_face),
+		// Vue de gauche : le miroir exact de la vue de droite (mêmes marges, inversées). Sans photo : la vue de droite.
+		gauche: fileUrl(v, v.img_gauche || v.img_droite || v.img_face),
 		prix: Math.round((v.expand?.modele?.prix || PRIX_PAR_DEFAUT / 100) * 100),
 	};
 }
@@ -220,6 +224,15 @@ export function styleVueDroite(c: Cadrage): string {
 	const h = 377 / (c.y1 - c.y0);
 	const w = h / c.ratio;
 	return `left:${pct(6 - c.x0 * w, panneau.w)};top:${pct(113 - c.y0 * h, panneau.h)};width:${pct(w, panneau.w)}`;
+}
+
+/** Vue de gauche : le miroir de styleVueDroite, monture à 6px du bord DROIT du panneau. */
+export function styleVueGauche(c: Cadrage): string {
+	const panneau = { w: 733, h: 606 };
+	const pct = (v: number, total: number) => `${((v / total) * 100).toFixed(2)}%`;
+	const h = 377 / (c.y1 - c.y0);
+	const w = h / c.ratio;
+	return `left:${pct(panneau.w - 6 - c.x1 * w, panneau.w)};top:${pct(113 - c.y0 * h, panneau.h)};width:${pct(w, panneau.w)}`;
 }
 
 /** Noms affichés des couleurs (`nom_couleur` dans PocketBase), par type : { monture: { bleu: 'Blue Bird' … }, verre: {…} }. */

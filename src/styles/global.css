@@ -20,12 +20,12 @@
   --font-satoshi: "Satoshi", ui-sans-serif, system-ui, sans-serif;
   --font-rubik-mono: "Rubik Mono One", ui-monospace, monospace;
 
-  /* Animations : génèrent les classes animate-marquee, animate-frise et animate-swap */
+  /* Animations : génèrent les classes animate-marquee, animate-frise et animate-vues */
   --animate-marquee: marquee 40s linear infinite;
   /* Frises d'étoiles des cards Nouveautés : avance d'un motif (3.71vh) à la vitesse d'avant (18 motifs en 15s) */
   --animate-frise: frise 0.833s linear infinite;
-  /* Bestsellers : la vue de droite apparaît puis disparaît, par-dessus la vue de face (cycle de 5s) */
-  --animate-swap: swap 5s ease-in-out infinite;
+  /* Bestsellers : les vues de face, de droite et de gauche se succèdent (2,5 s chacune, cycle de 7,5 s) */
+  --animate-vues: vues 7.5s ease-in-out infinite;
 
   @keyframes frise {
     to {
@@ -39,11 +39,11 @@
     }
   }
 
-  @keyframes swap {
-    0%, 40%, 100% {
+  @keyframes vues {
+    0%, 36%, 100% {
       opacity: 0;
     }
-    50%, 90% {
+    6%, 30% {
       opacity: 1;
     }
   }
